@@ -1,0 +1,52 @@
+# =============================================================================
+# AI Engine Configuration
+# LLM routing, timeouts, model selection — all externalized.
+# =============================================================================
+
+app:
+  name: "LinkedIn-as-a-Service AI Engine"
+  version: "0.1.0"
+
+llm:
+  timeout_seconds: 15
+  max_retries: 3
+  models:
+    development: "gpt-4o-mini"
+    staging: "gpt-4o-mini"
+    production: "gpt-4o"
+
+prompts:
+  post_generation:
+    max_output_tokens: 1500
+    temperature: 0.7
+  comment_generation:
+    max_output_tokens: 800
+    temperature: 0.6
+
+blocklist:
+  # Words/phrases the AI must NEVER use in generated content
+  forbidden_words:
+    - "delve"
+    - "testament"
+    - "synergy"
+    - "game-changer"
+    - "paradigm shift"
+    - "at the end of the day"
+    - "in today's fast-paced world"
+    - "I'm excited to share"
+    - "I'm thrilled"
+    - "AMAZING"
+  forbidden_comment_phrases:
+    - "Great post!"
+    - "I agree!"
+    - "Well said!"
+    - "Totally agree"
+    - "Love this!"
+    - "Thanks for sharing"
+    - "Couldn't agree more"
+
+frameworks:
+  - story
+  - contrarian
+  - playbook
+  - lessons

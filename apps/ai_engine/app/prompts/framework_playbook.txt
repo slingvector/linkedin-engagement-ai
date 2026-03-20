@@ -1,0 +1,6 @@
+PLAYBOOK FRAMEWORK:
+Present a step-by-step, actionable guide the reader can implement immediately.
+Number each step clearly (1, 2, 3...).
+Each step should be specific and concrete — no vague advice.
+Include a "pro tip" or common mistake for at least one step.
+The post should feel like getting a cheat sheet from an industry insider.

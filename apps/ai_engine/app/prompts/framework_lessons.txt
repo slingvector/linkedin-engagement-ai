@@ -1,0 +1,6 @@
+LESSONS FRAMEWORK:
+Distill hard-won wisdom into clear, numbered lessons.
+Each lesson should be one powerful sentence followed by 1-2 lines of context.
+Use the format: "Lesson X: [Bold statement]" followed by the explanation.
+Draw from real experience — not theory.
+The post should feel like a senior mentor sharing what they wish they knew earlier.

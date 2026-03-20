@@ -1,0 +1,43 @@
+# =============================================================================
+# Core API Configuration
+# All business-logic parameters live here. ZERO hardcoding in .py files.
+# Reference: docs/IMPORTANT_NOTES.md
+# =============================================================================
+
+app:
+  name: "LinkedIn-as-a-Service Core API"
+  version: "0.1.0"
+  api_prefix: "/api/v1"
+
+auth:
+  linkedin:
+    auth_url: "https://www.linkedin.com/oauth/v2/authorization"
+    token_url: "https://www.linkedin.com/oauth/v2/accessToken"
+    userinfo_url: "https://api.linkedin.com/v2/userinfo"
+    scopes:
+      - "openid"
+      - "profile"
+      - "email"
+      - "w_member_social"
+  jwt:
+    algorithm: "HS256"
+    expiry_minutes: 1440  # 24 hours
+
+rate_limits:
+  post_generation:
+    max_per_minute: 10
+    max_per_day_free: 5
+    max_per_day_pro: 50
+  comment_generation:
+    max_per_minute: 15
+    max_per_day_free: 10
+    max_per_day_pro: 100
+
+timeouts:
+  ai_engine_seconds: 15
+  linkedin_api_seconds: 10
+
+safety:
+  max_posts_per_day: 10      # protect users from LinkedIn flags
+  max_comments_per_day: 30
+  min_delay_between_actions_seconds: 30
