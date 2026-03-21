@@ -9,27 +9,27 @@ The application is segregated into three primary isolated components:
 ```mermaid
 flowchart TD
     subgraph Client [Client Tier]
-        UI[Next.js + Tailwind React Frontend]
+        UI["Next.js + Tailwind React Frontend"]
     end
 
     subgraph State Tier [State & Proxy Tier]
-        CoreAPI[Core API (FastAPI)]
+        CoreAPI["Core API (FastAPI)"]
         DB[(PostgreSQL)]
-        Worker[Celery + Redis Scheduler]
-        Playwright[Playwright Headless Scraper]
+        Worker["Celery + Redis Scheduler"]
+        Playwright["Playwright Headless Scraper"]
     end
 
     subgraph Intelligence Tier [AI Proxy Mesh]
-        AIEngine[AI Engine (FastAPI)]
-        Google[Google Developer API (Gemini 2.5)]
-        Ollama[Local Ollama Inference]
+        AIEngine["AI Engine (FastAPI)"]
+        Google["Google Developer API (Gemini 2.5)"]
+        Ollama["Local Ollama Inference"]
     end
 
     Client -- "OAuth JWT / NextAuth" --> CoreAPI
     CoreAPI -- "FastAPI SQLAlchemy" --> DB
     CoreAPI -- "Triggers Jobs" --> Worker
     Worker -- "Secure Proxies" --> Playwright
-    Playwright -- "Headless Browser" --> LinkedIn((LinkedIn Servers))
+    Playwright -- "Headless Browser" --> LinkedIn(("LinkedIn Servers"))
     CoreAPI -- "X-AI-API-Key Webhook JSON" --> AIEngine
     AIEngine -- "Pydantic SDK Output" --> Google
     AIEngine -- "Safe Fallback" -.-> Ollama
