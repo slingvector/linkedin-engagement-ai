@@ -8,12 +8,12 @@ app:
   version: "0.1.0"
 
 llm:
-  timeout_seconds: 15
+  timeout_seconds: 45
   max_retries: 3
   models:
-    development: "gpt-4o-mini"
-    staging: "gpt-4o-mini"
-    production: "gpt-4o"
+    development: "gemini-2.5-flash"
+    staging: "gemini-2.5-flash"
+    production: "gemini-2.5-pro"
 
 prompts:
   post_generation:

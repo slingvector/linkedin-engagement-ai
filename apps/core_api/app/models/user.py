@@ -30,6 +30,9 @@ class User(Base, UUIDMixin, TimestampMixin):
     refresh_token_encrypted = Column(Text, nullable=True)
     token_expires_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Scraper cookies 
+    li_at_cookie_encrypted = Column(Text, nullable=True, comment="Browser session cookie for Playwright scraper")
+
     # Feature gating
     subscription_tier = Column(String(50), default="free", nullable=False)
 

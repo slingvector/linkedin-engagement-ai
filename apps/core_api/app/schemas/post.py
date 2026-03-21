@@ -3,6 +3,7 @@ Pydantic request/response schemas for post generation and CRUD.
 """
 
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -40,7 +41,7 @@ class PostGenerateRequest(BaseModel):
 class PostResponse(BaseModel):
     """Full post response returned to frontend."""
 
-    id: str
+    id: UUID
     hook: str
     body_content: str
     call_to_action: str

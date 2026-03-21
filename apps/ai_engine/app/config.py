@@ -31,6 +31,7 @@ class Settings(BaseSettings):
 
     # --- LLM ---
     openai_api_key: str = Field(default="")
+    gemini_api_key: str = Field(default="")
 
     # --- Observability ---
     log_level: str = Field(default="INFO")

@@ -48,7 +48,9 @@ function PostCreatorContent() {
       queryClient.invalidateQueries({ queryKey: ["posts"] })
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.detail || "Failed to generate post")
+      const detail = err.response?.data?.detail;
+      const errorMessage = Array.isArray(detail) ? detail[0]?.msg : (typeof detail === 'string' ? detail : "Failed to generate post");
+      toast.error(errorMessage);
     },
   })
 
@@ -66,7 +68,9 @@ function PostCreatorContent() {
       queryClient.invalidateQueries({ queryKey: ["posts-calendar"] })
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.detail || "Failed to schedule post")
+      const detail = err.response?.data?.detail;
+      const errorMessage = Array.isArray(detail) ? detail[0]?.msg : (typeof detail === 'string' ? detail : "Failed to schedule post");
+      toast.error(errorMessage);
     },
   })
 

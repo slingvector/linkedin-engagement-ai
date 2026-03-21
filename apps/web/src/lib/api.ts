@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get API URL from env, default to local Core API
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.31.242:8000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 export const api = axios.create({
   baseURL: API_URL,

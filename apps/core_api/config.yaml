@@ -34,8 +34,8 @@ rate_limits:
     max_per_day_pro: 100
 
 timeouts:
-  ai_engine_seconds: 15
-  linkedin_api_seconds: 10
+  ai_engine_seconds: 45
+  linkedin_api_seconds: 15
 
 safety:
   max_posts_per_day: 10      # protect users from LinkedIn flags

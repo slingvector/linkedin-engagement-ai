@@ -1,4 +1,5 @@
 import asyncio
+import structlog
 from sqlalchemy.ext.asyncio import create_async_engine
 from app.config import get_settings
 from app.models.base import Base
@@ -12,12 +13,19 @@ from app.models import (
     CommentFeedback
 )
 
-async def init_db():
+logger = structlog.get_logger()
+
+async def reset_db():
     settings = get_settings()
     engine = create_async_engine(settings.database_url, echo=True)
+    
+    logger.info("Dropping all tables from the database...")
     async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        logger.info("Re-creating all tables...")
         await conn.run_sync(Base.metadata.create_all)
-    print("Master Database initialized successfully with all tables!")
+        
+    logger.info("Master Database reset successfully! Clean slate achieved.")
 
 if __name__ == "__main__":
-    asyncio.run(init_db())
+    asyncio.run(reset_db())

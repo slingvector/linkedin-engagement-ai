@@ -31,7 +31,9 @@ export default function IdeasPage() {
       toast.success("Generated 5 fresh content ideas!")
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.detail || "Failed to generate ideas")
+      const detail = err.response?.data?.detail;
+      const errorMessage = Array.isArray(detail) ? detail[0]?.msg : (typeof detail === 'string' ? detail : "Failed to generate ideas");
+      toast.error(errorMessage);
     },
   })
 

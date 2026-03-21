@@ -8,6 +8,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import structlog
 
+from app.config import get_settings, get_yaml_config
+from app.utils.logger import setup_logging
+
 from app.controllers import health_controller, post_controller, comment_controller, idea_controller, classifier_controller, career_controller, sales_controller, talent_ai_controller, enterprise_ai_controller, evals_ai_controller
 
 logger = structlog.get_logger()

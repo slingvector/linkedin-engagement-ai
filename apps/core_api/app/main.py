@@ -12,7 +12,7 @@ import structlog
 
 from app.config import get_settings, get_yaml_config
 from app.middleware.error_handler import register_error_handlers
-from app.controllers import auth_controller, health_controller, post_controller, creator_controller, idea_controller, analytics_controller, career_controller, sales_controller, talent_controller, enterprise_controller, llmops_controller
+from app.controllers import auth_controller, health_controller, post_controller, creator_controller, idea_controller, analytics_controller, career_controller, sales_controller, talent_controller, enterprise_controller, llmops_controller, comment_controller
 from app.utils.logger import setup_logging
 from app.workers.ingestion_worker import safe_ingest_mock_posts
 from app.workers.publishing_worker import publishing_scheduler_loop
@@ -42,10 +42,10 @@ async def lifespan(app: FastAPI):
     ingestion_task = asyncio.create_task(safe_ingest_mock_posts())
     publishing_task = asyncio.create_task(publishing_scheduler_loop())
     metrics_task = asyncio.create_task(poll_metrics_and_classifications())
-    job_seeder_task = asyncio.create_task(sync_remote_job_board())
-    lead_seeder_task = asyncio.create_task(seed_leads_loop())
-    candidate_seeder_task = asyncio.create_task(seed_candidates_loop())
-    signal_seeder_task = asyncio.create_task(seed_enterprise_signals_loop())
+    # job_seeder_task = asyncio.create_task(sync_remote_job_board())
+    # lead_seeder_task = asyncio.create_task(seed_leads_loop())
+    # candidate_seeder_task = asyncio.create_task(seed_candidates_loop())
+    # signal_seeder_task = asyncio.create_task(seed_enterprise_signals_loop())
     evals_task = asyncio.create_task(seed_evals_loop())
 
     yield
@@ -54,10 +54,10 @@ async def lifespan(app: FastAPI):
     ingestion_task.cancel()
     publishing_task.cancel()
     metrics_task.cancel()
-    job_seeder_task.cancel()
-    lead_seeder_task.cancel()
-    candidate_seeder_task.cancel()
-    signal_seeder_task.cancel()
+    # job_seeder_task.cancel()
+    # lead_seeder_task.cancel()
+    # candidate_seeder_task.cancel()
+    # signal_seeder_task.cancel()
     evals_task.cancel()
     logger.info("app_shutting_down", service="core_api")
 
@@ -105,6 +105,7 @@ def create_app() -> FastAPI:
     app.include_router(talent_controller.router, prefix=api_prefix)
     app.include_router(enterprise_controller.router, prefix=api_prefix)
     app.include_router(llmops_controller.router, prefix=api_prefix)
+    app.include_router(comment_controller.router, prefix=api_prefix)
 
     return app
 

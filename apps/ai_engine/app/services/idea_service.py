@@ -52,6 +52,7 @@ Topic / Niche: {request.topic_niche}
             user_prompt=user_prompt,
             max_tokens=prompt_config.get("max_output_tokens", 800),
             temperature=prompt_config.get("temperature", 0.7),
+            response_schema=IdeaGenerationResponse,
         )
 
         logger.info(
