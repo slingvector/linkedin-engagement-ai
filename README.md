@@ -32,7 +32,7 @@ flowchart TD
     Playwright -- "Headless Browser" --> LinkedIn(("LinkedIn Servers"))
     CoreAPI -- "X-AI-API-Key Webhook JSON" --> AIEngine
     AIEngine -- "Pydantic SDK Output" --> Google
-    AIEngine -- "Safe Fallback" -.-> Ollama
+    AIEngine -- "Safe Fallback" --> Ollama
 ```
 
 ---
