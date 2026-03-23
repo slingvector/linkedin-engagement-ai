@@ -27,7 +27,7 @@ const ATS_COLUMNS = [
 
 async function fetchCandidates() {
   const token = localStorage.getItem("access_token");
-  const res = await fetch("http://192.168.31.242:8000/api/v1/talent/candidates", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/talent/candidates`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   if (!res.ok) throw new Error("Failed to fetch candidates");
@@ -37,7 +37,7 @@ async function fetchCandidates() {
 
 async function updateCandidateStage(candidateId: string, stage: string) {
   const token = localStorage.getItem("access_token");
-  const res = await fetch(`http://192.168.31.242:8000/api/v1/talent/candidates/${candidateId}/stage`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/talent/candidates/${candidateId}/stage`, {
     method: "PUT",
     headers: { 
       "Content-Type": "application/json",

@@ -11,9 +11,9 @@ from pydantic import BaseModel, HttpUrl, Field
 
 class TrackedCreatorCreate(BaseModel):
     """Payload to start monitoring a new creator."""
-    linkedin_id: str
+    linkedin_id: str | None = None
     profile_url: HttpUrl
-    full_name: str
+    full_name: str | None = None
     headline: str | None = None
     profile_picture_url: HttpUrl | None = None
     auto_generation_prompt: str | None = None

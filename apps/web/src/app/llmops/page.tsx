@@ -25,7 +25,7 @@ export default function LLMOpsDashboard() {
 
   const fetchMetrics = async () => {
     try {
-      const response = await fetch("http://192.168.31.242:8000/api/v1/llmops/metrics", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/llmops/metrics`, {
         headers: { "Authorization": `Bearer ${localStorage.getItem('access_token')}` }
       });
       const data = await response.json();

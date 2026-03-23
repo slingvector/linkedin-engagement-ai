@@ -27,7 +27,7 @@ const STATUS_COLUMNS = [
 
 async function fetchProspects() {
   const token = localStorage.getItem("access_token");
-  const res = await fetch("http://192.168.31.242:8000/api/v1/sales/prospects", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sales/prospects`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   if (!res.ok) throw new Error("Failed to fetch prospects");
@@ -39,7 +39,7 @@ async function fetchProspects() {
 // In a true deep app we'd fetch the exact Conversation table rows
 async function updateConversationStatus(prospectId: string, status: string) {
   const token = localStorage.getItem("access_token");
-  const res = await fetch(`http://192.168.31.242:8000/api/v1/sales/prospects/${prospectId}/status`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sales/prospects/${prospectId}/status`, {
     method: "PUT",
     headers: { 
       "Content-Type": "application/json",

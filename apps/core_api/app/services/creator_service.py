@@ -37,11 +37,27 @@ class CreatorService:
         self, user_id: UUID, req: TrackedCreatorCreate
     ) -> TrackedCreator:
         """Start tracking a new creator."""
+        # Simulated Backend Enrichment Layer
+        linkedin_id = req.linkedin_id
+        full_name = req.full_name
+        profile_url_str = str(req.profile_url)
+
+        if not linkedin_id:
+            # Extract basic id from URL (e.g., linkedin.com/in/satyanadella -> satyanadella)
+            parts = [p for p in profile_url_str.split('/') if p]
+            if parts:
+                linkedin_id = parts[-1]
+            else:
+                linkedin_id = f"unknown_{int(time.time())}"
+
+        if not full_name:
+            full_name = f"Pending Scrape: @{linkedin_id}"
+
         creator = TrackedCreator(
             user_id=user_id,
-            linkedin_id=req.linkedin_id,
-            profile_url=str(req.profile_url),
-            full_name=req.full_name,
+            linkedin_id=linkedin_id,
+            profile_url=profile_url_str,
+            full_name=full_name,
             headline=req.headline,
             profile_picture_url=str(req.profile_picture_url) if req.profile_picture_url else None,
             auto_generation_prompt=req.auto_generation_prompt,

@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 async function fetchAbmSignals() {
   const token = localStorage.getItem("access_token");
-  const res = await fetch("http://192.168.31.242:8000/api/v1/enterprise/signals", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enterprise/signals`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   if (!res.ok) return { data: [] };
@@ -23,7 +23,7 @@ async function fetchAbmSignals() {
 
 async function fetchProspects() {
   const token = localStorage.getItem("access_token");
-  const res = await fetch("http://192.168.31.242:8000/api/v1/sales/prospects", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sales/prospects`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   if (!res.ok) return { data: [] };
@@ -36,7 +36,7 @@ export default function AnalyticsPage() {
     queryKey: ['analyticsDashboard'],
     queryFn: async () => {
       // Direct fetch to core api 
-      const res = await fetch("http://192.168.31.242:8000/api/v1/analytics/dashboard", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/dashboard`, {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         }

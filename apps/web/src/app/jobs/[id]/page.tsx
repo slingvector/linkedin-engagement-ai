@@ -43,7 +43,7 @@ export default function JobApplicationWorkspace() {
     
     try {
       // In a real flow, this goes to Core API -> CareerService -> parse_and_store_resume
-      const res = await fetch("http://192.168.31.242:8000/api/v1/career/upload-resume", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/career/upload-resume`, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${localStorage.getItem("token")}`

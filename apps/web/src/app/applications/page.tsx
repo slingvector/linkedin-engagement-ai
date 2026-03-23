@@ -50,7 +50,7 @@ export default function ApplicationsKanbanPage() {
 
     // In a real implementation we would PUT /api/v1/career/applications/{id}/status
     /*
-    await fetch(`http://192.168.31.242:8000/api/v1/career/applications/${appId}/status`, {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/career/applications/${appId}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: nextStatus })

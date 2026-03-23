@@ -60,10 +60,11 @@ async def safe_ingest_mock_posts():
                     # Randomly decide to "discover" a new post (e.g., 20% chance per run)
                     for creator in active_creators:
                         if random.random() < 0.2:
+                            post_urn = f"urn:li:share:{uuid4().hex[:12]}"
                             new_post = IngestedPost(
                                 tracked_creator_id=creator.id,
-                                linkedin_post_id=f"urn:li:share:{uuid4().hex[:12]}",
-                                post_url=f"{creator.profile_url}recent-activity/shares/",
+                                linkedin_post_id=post_urn,
+                                post_url=f"https://www.linkedin.com/feed/update/{post_urn}/",
                                 content=random.choice(MOCK_TOPICS),
                                 posted_at=datetime.now(timezone.utc) - timedelta(minutes=random.randint(5, 60)),
                                 likes=random.randint(10, 500),

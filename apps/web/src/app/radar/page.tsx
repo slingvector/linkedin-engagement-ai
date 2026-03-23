@@ -39,7 +39,11 @@ export default function RadarPage() {
       setNewCreatorUrl("")
       queryClient.invalidateQueries({ queryKey: ["radar-feed"] })
     },
-    onError: (err: any) => toast.error(err.response?.data?.detail || "Failed to add creator")
+    onError: (err: any) => {
+      const detail = err.response?.data?.detail;
+      const msg = typeof detail === 'string' ? detail : JSON.stringify(detail) || "Failed to add creator";
+      toast.error(msg);
+    }
   })
 
   // Generate Comments
@@ -52,7 +56,11 @@ export default function RadarPage() {
       toast.success("Comment strategies generated!")
       setGeneratedDrafts(prev => ({ ...prev, [postId]: drafts }))
     },
-    onError: (err: any) => toast.error(err.response?.data?.detail || "Failed to generate comments")
+    onError: (err: any) => {
+      const detail = err.response?.data?.detail;
+      const msg = typeof detail === 'string' ? detail : JSON.stringify(detail) || "Failed to generate comments";
+      toast.error(msg);
+    }
   })
 
   // Submit Feedback

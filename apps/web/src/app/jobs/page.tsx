@@ -13,7 +13,7 @@ export default function JobDiscoveryPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['careerJobs'],
     queryFn: async () => {
-      const res = await fetch("http://192.168.31.242:8000/api/v1/career/jobs", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/career/jobs`, {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         }

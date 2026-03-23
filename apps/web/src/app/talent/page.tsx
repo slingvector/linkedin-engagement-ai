@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 
 async function fetchCandidates() {
   const token = localStorage.getItem("access_token");
-  const res = await fetch("http://192.168.31.242:8000/api/v1/talent/candidates", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/talent/candidates`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   if (!res.ok) throw new Error("Failed to fetch candidates");

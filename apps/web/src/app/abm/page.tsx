@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 
 async function fetchAbmSignals() {
   const token = localStorage.getItem("access_token");
-  const res = await fetch("http://192.168.31.242:8000/api/v1/enterprise/signals", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enterprise/signals`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   if (!res.ok) throw new Error("Failed to fetch enterprise signals");
