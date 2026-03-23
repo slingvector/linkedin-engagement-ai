@@ -1,5 +1,3 @@
-version: '3.8'
-
 x-logging: &default-logging
   driver: "json-file"
   options:
@@ -30,7 +28,8 @@ services:
       - redis_prod_data:/data
 
   ai_engine:
-    image: ghcr.io/slingvector/linkedin-as-a-service-ai_engine:${APP_VERSION:-latest}
+    image: ghcr.io/slingvector/linkedin-engagement-ai-ai_engine:${APP_VERSION:-latest}
+    platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
     env_file:
@@ -38,11 +37,13 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - X_AI_API_KEY=${X_AI_API_KEY:-dev_key}
+      - AI_ENGINE_API_KEY=${AI_ENGINE_API_KEY:-change_this_internal_microservice_key}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OLLAMA_API_BASE=http://host.docker.internal:11434
       
   core_api: # NO PORTS EXPOSED. ISOLATED.
-    image: ghcr.io/slingvector/linkedin-as-a-service-core_api:${APP_VERSION:-latest}
+    image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:${APP_VERSION:-latest}
+    platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
     env_file:
@@ -58,7 +59,8 @@ services:
       - ai_engine
 
   ingestion_worker:
-    image: ghcr.io/slingvector/linkedin-as-a-service-ingestion_worker:${APP_VERSION:-latest}
+    image: ghcr.io/slingvector/linkedin-engagement-ai-ingestion_worker:${APP_VERSION:-latest}
+    platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
     env_file:
@@ -70,7 +72,8 @@ services:
       - postgres
 
   web:
-    image: ghcr.io/slingvector/linkedin-as-a-service-web:${APP_VERSION:-latest}
+    image: ghcr.io/slingvector/linkedin-engagement-ai-web:${APP_VERSION:-latest}
+    platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
     env_file:

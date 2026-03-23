@@ -27,7 +27,11 @@ class LLMService:
     def __init__(self):
         self._settings = get_settings()
         self._yaml_config = get_yaml_config()
-        self._client = genai.Client(api_key=self._settings.gemini_api_key)
+        self._client = None
+        if self._settings.gemini_api_key:
+            self._client = genai.Client(api_key=self._settings.gemini_api_key)
+        else:
+            logger.warning("gemini_api_key_missing", action="Will use Ollama fallback")
 
     def _get_model_name(self) -> str:
         """Route to the correct Gemini model based on environment."""
@@ -67,6 +71,9 @@ class LLMService:
         )
 
         try:
+            if not self._client:
+                raise ValueError("Gemini client not initialized (missing API key)")
+
             # Note: We append the system prompt directly to the contents string if using simpler sync calls,
             # or use system_instruction inside GenerateContentConfig.
             config = types.GenerateContentConfig(
