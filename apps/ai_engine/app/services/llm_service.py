@@ -85,11 +85,16 @@ class LLMService:
 
             logger.info("llm_call_complete", provider="google_genai", model=model_name)
             
-            raw_text = response.text.strip()
-            if raw_text.startswith("```json"):
-                raw_text = raw_text.replace("```json", "", 1)
-            if raw_text.endswith("```"):
-                raw_text = raw_text[:-3]
+            raw_text = response.text.strip() if response.text else "{}"
+            
+            # Robust JSON extraction: Find the first '{' and last '}'
+            start_idx = raw_text.find('{')
+            end_idx = raw_text.rfind('}')
+            
+            if start_idx != -1 and end_idx != -1 and end_idx >= start_idx:
+                raw_text = raw_text[start_idx:end_idx+1]
+            else:
+                raw_text = "{}"
                 
             return json.loads(raw_text.strip())
             

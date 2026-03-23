@@ -50,7 +50,7 @@ Topic / Niche: {request.topic_niche}
         result = await self._llm.generate_structured_json(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            max_tokens=prompt_config.get("max_output_tokens", 800),
+            max_tokens=prompt_config.get("max_output_tokens", 2500),
             temperature=prompt_config.get("temperature", 0.7),
             response_schema=IdeaGenerationResponse,
         )
