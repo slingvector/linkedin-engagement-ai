@@ -86,3 +86,7 @@ async def safe_ingest_mock_posts():
         except Exception as e:
             logger.error("bg_worker_error", worker="safe_post_ingestion", error=str(e))
             await asyncio.sleep(60)  # Sleep on error before retrying
+
+if __name__ == "__main__":
+    logger.info("Initializing ingestion_worker process...")
+    asyncio.run(safe_ingest_mock_posts())

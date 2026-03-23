@@ -34,6 +34,8 @@ services:
       context: ./apps/ai_engine
     restart: unless-stopped
     logging: *default-logging
+    env_file:
+      - .env
     ports:
       - "8001:8001"
     environment:
@@ -45,6 +47,8 @@ services:
       context: ./apps/core_api
     restart: unless-stopped
     logging: *default-logging
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-linkedin_os_prod}
       - REDIS_URL=redis://redis:6379/0
@@ -60,6 +64,8 @@ services:
       context: ./apps/core_api
     restart: unless-stopped
     logging: *default-logging
+    env_file:
+      - .env
     command: ["python", "-m", "app.workers.ingestion_worker"]
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-linkedin_os_prod}
@@ -71,6 +77,8 @@ services:
       context: ./apps/web
     restart: unless-stopped
     logging: *default-logging
+    env_file:
+      - .env
     ports:
       - "3000:3000"
     environment:
