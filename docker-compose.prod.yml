@@ -39,8 +39,8 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - X_AI_API_KEY=${X_AI_API_KEY:-dev_key}
+      - OLLAMA_API_BASE=http://host.docker.internal:11434
       
   core_api: # NO PORTS EXPOSED. ISOLATED.
     build:

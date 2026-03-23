@@ -102,7 +102,9 @@ class LLMService:
             )
             try:
                 import openai
-                ollama_client = openai.AsyncOpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+                import os
+                ollama_base = os.getenv("OLLAMA_API_BASE", "http://localhost:11434")
+                ollama_client = openai.AsyncOpenAI(base_url=f"{ollama_base}/v1", api_key="ollama")
                 ollama_response = await ollama_client.chat.completions.create(
                     model="llama3.2:latest",
                     messages=[
