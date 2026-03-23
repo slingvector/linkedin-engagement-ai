@@ -1,44 +1,52 @@
 version: '3.8'
 
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-linkedin_os}
+      POSTGRES_DB: ${POSTGRES_DB:-linkedin_os_prod}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_prod_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - redis_prod_data:/data
 
   ai_engine:
     build:
       context: ./apps/ai_engine
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "8001:8001"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - X_AI_API_KEY=${X_AI_API_KEY:-dev_key}
       
-  core_api:
+  core_api: # NO PORTS EXPOSED. ISOLATED.
     build:
       context: ./apps/core_api
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    logging: *default-logging
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-linkedin_os}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-linkedin_os_prod}
       - REDIS_URL=redis://redis:6379/0
       - AI_ENGINE_URL=http://ai_engine:8001
       - FRONTEND_URL=http://localhost:3000
@@ -51,9 +59,10 @@ services:
     build:
       context: ./apps/core_api
     restart: unless-stopped
-    command: ["python", "-m", "app.workers.ingestion_worker"] # Example mapping to worker scripts
+    logging: *default-logging
+    command: ["python", "-m", "app.workers.ingestion_worker"]
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-linkedin_os}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-linkedin_os_prod}
     depends_on:
       - postgres
 
@@ -61,14 +70,15 @@ services:
     build:
       context: ./apps/web
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "3000:3000"
     environment:
-      # Use an absolute URL mapped locally / publicly
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1 
+      - NEXT_PUBLIC_API_URL=/api/v1
+      - CORE_API_INTERNAL_URL=http://core_api:8000
     depends_on:
       - core_api
 
 volumes:
-  postgres_data:
-  redis_data:
+  postgres_prod_data:
+  redis_prod_data:

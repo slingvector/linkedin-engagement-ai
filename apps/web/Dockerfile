@@ -3,6 +3,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ENV NEXT_PUBLIC_API_URL=/api/v1
+
 # Install dependencies based on package.json
 COPY package*.json ./
 RUN npm install
