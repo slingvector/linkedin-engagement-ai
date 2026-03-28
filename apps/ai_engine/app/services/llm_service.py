@@ -31,13 +31,13 @@ class LLMService:
         if self._settings.gemini_api_key:
             self._client = genai.Client(api_key=self._settings.gemini_api_key)
         else:
-            logger.warning("gemini_api_key_missing", action="Will use Ollama fallback")
+            logger.warning("gemini_api_key_missing", action="Will use OpenAI fallback")
 
     def _get_model_name(self) -> str:
         """Route to the correct Gemini model based on environment."""
         llm_config = self._yaml_config.get("llm", {})
         models = llm_config.get("models", {})
-        return models.get(self._settings.environment, "gemini-2.5-flash")
+        return models.get(self._settings.environment, "gemini-1.5-flash")
 
     def _get_timeout(self) -> int:
         return self._yaml_config.get("llm", {}).get("timeout_seconds", 15)
@@ -81,7 +81,8 @@ class LLMService:
                 response_mime_type="application/json",
                 temperature=temperature,
                 max_output_tokens=max_tokens,
-                response_schema=response_schema
+                # Relaxing schema to avoid Gemini returning empty arrays for complex/messy inputs
+                # response_schema=response_schema
             )
             
             response = await self._client.aio.models.generate_content(
@@ -99,28 +100,40 @@ class LLMService:
             end_idx = raw_text.rfind('}')
             
             if start_idx != -1 and end_idx != -1 and end_idx >= start_idx:
-                raw_text = raw_text[start_idx:end_idx+1]
+                extracted_text = raw_text[start_idx:end_idx+1]
             else:
-                raw_text = "{}"
+                extracted_text = "{}"
                 
-            return json.loads(raw_text.strip())
+            logger.info("llm_parsed_json", length=len(extracted_text), raw_preview=raw_text[:200])
+            
+            # Save raw response for deep debugging
+            with open("/tmp/llm_raw_response.json", "w") as rf:
+                rf.write(raw_text)
+
+            return json.loads(extracted_text.strip())
             
         except Exception as e:
-            # Safe Fallback to Local Ollama!
+            # Fallback to OpenAI
             logger.warning(
                 "gemini_error_fallback_triggered", 
                 reason=str(e),
-                action="Falling back to local Ollama (llama3.2:latest)."
+                action="Falling back to OpenAI (gpt-4o-mini)."
             )
             try:
                 import openai
-                import os
-                ollama_base = os.getenv("OLLAMA_API_BASE", "http://localhost:11434")
-                ollama_client = openai.AsyncOpenAI(base_url=f"{ollama_base}/v1", api_key="ollama")
-                ollama_response = await ollama_client.chat.completions.create(
-                    model="llama3.2:latest",
+                openai_client = openai.AsyncOpenAI(api_key=self._settings.openai_api_key)
+                
+                # Force OpenAI to know the schema shape if it exists
+                fallback_prompt = system_prompt
+                if response_schema:
+                    fallback_prompt += f"\n\nYou MUST return a JSON object exactly matching this schema or structure:\n{json.dumps(response_schema)}\n"
+                else:
+                    fallback_prompt += "\n\nYou MUST return a valid JSON object.\n"
+                    
+                openai_response = await openai_client.chat.completions.create(
+                    model="gpt-4o-mini",
                     messages=[
-                        {"role": "system", "content": system_prompt},
+                        {"role": "system", "content": fallback_prompt},
                         {"role": "user", "content": user_prompt},
                     ],
                     response_format={"type": "json_object"},
@@ -128,12 +141,13 @@ class LLMService:
                     temperature=temperature,
                     timeout=30.0,
                 )
-                return json.loads(ollama_response.choices[0].message.content)
-            except Exception as ollama_e:
-                logger.error("ollama_fallback_failed", error=str(ollama_e))
+                raw_text = openai_response.choices[0].message.content
+                logger.info("openai_fallback_success", response_preview=str(raw_text)[:200])
+                return json.loads(raw_text)
+            except Exception as fallback_e:
+                logger.error("openai_fallback_failed", error=str(fallback_e))
                 return {
                     "comment_insightful": "This is a profound perspective. The underlying mechanics of this approach solve several structural inefficiencies I've seen in the market lately.",
                     "comment_contrarian": "While I see the appeal of this framework, in practice the overhead often outweighs the benefits.",
                     "comment_supportive": "Love this! Thanks for sharing these insights, really helpful breakdown."
                 }
-            raise e

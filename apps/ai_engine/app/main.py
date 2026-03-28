@@ -11,7 +11,7 @@ import structlog
 from app.config import get_settings, get_yaml_config
 from app.utils.logger import setup_logging
 
-from app.controllers import health_controller, post_controller, comment_controller, idea_controller, classifier_controller, career_controller, sales_controller, talent_ai_controller, enterprise_ai_controller, evals_ai_controller
+from app.controllers import health_controller, post_controller, comment_controller, idea_controller, classifier_controller, career_controller, sales_controller, talent_ai_controller, enterprise_ai_controller, evals_ai_controller, extraction_controller
 
 logger = structlog.get_logger()
 
@@ -54,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(talent_ai_controller.router)
     app.include_router(enterprise_ai_controller.router)
     app.include_router(evals_ai_controller.router)
+    app.include_router(extraction_controller.router)
 
     return app
 

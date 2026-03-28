@@ -3,6 +3,7 @@ Comment generation service — orchestrates AI comment creation.
 """
 
 from pathlib import Path
+import json
 
 import structlog
 
@@ -57,17 +58,30 @@ STRICT NEGATIVE BLOCKLIST — NEVER use these phrases:
         prompt_config = self._yaml_config.get("prompts", {}).get("comment_generation", {})
 
         # Call LLM
+        schema = {
+            "type": "OBJECT",
+            "properties": {
+                "comment_insightful": {"type": "STRING"},
+                "comment_contrarian": {"type": "STRING"},
+                "comment_supportive": {"type": "STRING"}
+            },
+            "required": ["comment_insightful", "comment_contrarian", "comment_supportive"]
+        }
+        
         result = await self._llm.generate_structured_json(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             max_tokens=prompt_config.get("max_output_tokens", 800),
             temperature=prompt_config.get("temperature", 0.6),
+            response_schema=schema
         )
 
         logger.info(
-            "comments_generated",
+            "comments_generated_raw",
             user_id=request.user_id,
             creator_name=request.creator_name,
+            result_keys=list(result.keys()),
+            full_json=json.dumps(result)
         )
 
         return CommentGenerationResponse(

@@ -14,7 +14,7 @@ from app.config import get_settings, get_yaml_config
 from app.middleware.error_handler import register_error_handlers
 from app.controllers import auth_controller, health_controller, post_controller, creator_controller, idea_controller, analytics_controller, career_controller, sales_controller, talent_controller, enterprise_controller, llmops_controller, comment_controller
 from app.utils.logger import setup_logging
-from app.workers.ingestion_worker import safe_ingest_mock_posts
+from app.workers.ingestion_worker import live_viral_ingestion_loop
 from app.workers.publishing_worker import publishing_scheduler_loop
 from app.workers.metrics_worker import poll_metrics_and_classifications
 from app.workers.job_seeder import sync_remote_job_board
@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
     )
     
     # Start background workers
-    ingestion_task = asyncio.create_task(safe_ingest_mock_posts())
+    ingestion_task = asyncio.create_task(live_viral_ingestion_loop())
     publishing_task = asyncio.create_task(publishing_scheduler_loop())
     metrics_task = asyncio.create_task(poll_metrics_and_classifications())
     # job_seeder_task = asyncio.create_task(sync_remote_job_board())

@@ -38,12 +38,13 @@ class Settings(BaseSettings):
     # --- Redis ---
     redis_url: str = Field(default="redis://localhost:6379/0")
 
-    # --- LinkedIn OAuth ---
+    # --- LinkedIn OAuth & Scraping ---
     linkedin_client_id: str = Field(default="")
     linkedin_client_secret: str = Field(default="")
     linkedin_redirect_uri: str = Field(
         default="http://localhost:8000/api/v1/auth/linkedin/callback"
     )
+    linkedin_li_at_cookie: str = Field(default="")
 
     # --- JWT ---
     jwt_secret_key: str = Field(default="change_this_to_a_random_64_char_string")

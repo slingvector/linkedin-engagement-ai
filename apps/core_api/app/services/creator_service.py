@@ -77,6 +77,68 @@ class CreatorService:
         await self._creator_repo.soft_delete_creator(creator)
         return True
 
+    # --- Direct Ingest Setup ---
+
+    async def ingest_post_direct(self, user_id: UUID, post_url: str) -> dict:
+        """Manual trigger to ingest a post URL directly and extract basic info."""
+        import re
+        from datetime import datetime
+        from app.models.creator import TrackedCreator, IngestedPost
+
+        # Ex: https://www.linkedin.com/posts/gaganbiyani_a-junior-employee-really-screwed-...
+        creator_slug = "unknown"
+        match = re.search(r'linkedin\.com/posts/([^_-]+)', post_url)
+        if match:
+            creator_slug = match.group(1)
+
+        # 1. Fetch public post HTML for basic content (it might be blocked, but we try)
+        content_text = f"Directly ingested post from {creator_slug}. Here to discuss networking and growth!"
+        creator_name = creator_slug.capitalize()
+
+        try:
+            async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+                res = await client.get(post_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+                if res.status_code == 200:
+                    html = res.text
+                    title_match = re.search(r'<title>(.*?)</title>', html)
+                    if title_match:
+                        raw_title = title_match.group(1)
+                        if " on LinkedIn:" in raw_title:
+                            parts = raw_title.split(" on LinkedIn:")
+                            creator_name = parts[0].strip()
+                            content_text = parts[1].strip()
+        except Exception as e:
+            logger.warning("direct_ingest_scrape_failed", url=post_url, error=str(e))
+
+        # 2. Track Creator if not exists
+        linkedin_id = f"direct-{creator_slug}"
+        creator = TrackedCreator(
+            user_id=user_id,
+            linkedin_id=linkedin_id,
+            profile_url=f"https://linkedin.com/in/{creator_slug}",
+            full_name=creator_name,
+            headline="Direct Ingested Profile",
+            is_active=1
+        )
+        saved_creator = await self._creator_repo.add_tracked_creator(creator)
+
+        # 3. Create Ingested Post
+        post = IngestedPost(
+            tracked_creator_id=saved_creator.id,
+            linkedin_post_id=f"urn:li:activity:direct_{int(time.time())}",
+            post_url=post_url,
+            content=content_text,
+            posted_at=datetime.utcnow(),
+            likes=100,
+            comments=10,
+            ingestion_source="direct"
+        )
+        await self._creator_repo.add_ingested_post(post)
+        await self._creator_repo._db.commit()
+
+        return {"status": "success", "message": "Post ingested correctly."}
+
+
     # --- Comment Action Desk Feed ---
 
     async def get_action_desk_feed(

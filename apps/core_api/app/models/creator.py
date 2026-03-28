@@ -60,6 +60,18 @@ class IngestedPost(Base, UUIDMixin, TimestampMixin):
     # Scraped engagement
     likes = Column(Integer, default=0)
     comments = Column(Integer, default=0)
+    reposts = Column(
+        Integer,
+        default=0,
+        nullable=True,
+        comment="Number of reposts/reshares — populated by appium read flow or enrichment",
+    )
+
+    ingestion_source = Column(
+        String(50),
+        default="scheduled",
+        comment="scheduled | direct | appium",
+    )
     
     is_processed = Column(
         Integer, 

@@ -1,43 +1,76 @@
-# =============================================================================
-# Core API Configuration
-# All business-logic parameters live here. ZERO hardcoding in .py files.
-# Reference: docs/IMPORTANT_NOTES.md
-# =============================================================================
-
 app:
-  name: "LinkedIn-as-a-Service Core API"
-  version: "0.1.0"
-  api_prefix: "/api/v1"
-
+  api_prefix: /api/v1
+  name: LinkedIn-as-a-Service Core API
+  version: 0.1.0
 auth:
-  linkedin:
-    auth_url: "https://www.linkedin.com/oauth/v2/authorization"
-    token_url: "https://www.linkedin.com/oauth/v2/accessToken"
-    userinfo_url: "https://api.linkedin.com/v2/userinfo"
-    scopes:
-      - "openid"
-      - "profile"
-      - "email"
-      - "w_member_social"
   jwt:
-    algorithm: "HS256"
-    expiry_minutes: 1440  # 24 hours
-
+    algorithm: HS256
+    expiry_minutes: 1440
+  linkedin:
+    auth_url: https://www.linkedin.com/oauth/v2/authorization
+    scopes:
+    - openid
+    - profile
+    - email
+    - w_member_social
+    token_url: https://www.linkedin.com/oauth/v2/accessToken
+    userinfo_url: https://api.linkedin.com/v2/userinfo
+ingestion:
+  llm_parser:
+    enabled: true
+    llm_model: gemini-2.0-flash
+    max_tokens: 4096
+  scraper:
+    error_sleep_interval_seconds: 300
+    feed_scroll_count: 5
+    linkedin_li_at_cookie: AQEDASO5l7cERBCyAAABnSYomDYAAAGdSjUcNlYAuZcBQooxdq3pZ35kVgKG4qNV8on-CHGe0trr6Eep8MhfoGEIrZli1rbfBODxQs-XLEdrtwaARj-KBPUP_jJotUO2DJpNgzhTJoriMUVivKUJpiE0
+    loop_sleep_interval_seconds: 3600
+    max_posts_to_process: 10
+    mock_comments_default: 25
+    mock_likes_default: 150
+    pause_between_scrolls_seconds: 2
+    target_url: https://www.linkedin.com/feed/
+    timeout_ms: 60000
+    user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36
+    viewport_height: 800
+    viewport_width: 1280
+  use_tiered_ingestion: true
+  viral:
+    min_comments_threshold: 1
+    min_content_length: 30
+    min_likes_threshold: 1
 rate_limits:
-  post_generation:
-    max_per_minute: 10
-    max_per_day_free: 5
-    max_per_day_pro: 50
   comment_generation:
-    max_per_minute: 15
     max_per_day_free: 10
     max_per_day_pro: 100
-
+    max_per_minute: 15
+  post_generation:
+    max_per_day_free: 5
+    max_per_day_pro: 50
+    max_per_minute: 10
+safety:
+  max_comments_per_day: 30
+  max_posts_per_day: 10
+  min_delay_between_actions_seconds: 30
 timeouts:
   ai_engine_seconds: 45
   linkedin_api_seconds: 15
 
-safety:
-  max_posts_per_day: 10      # protect users from LinkedIn flags
-  max_comments_per_day: 30
-  min_delay_between_actions_seconds: 30
+appium_read_flow:
+  enabled: true
+  device_udid: "RZCY110AKDZ"
+  device_pin: "2103"                     # Added for unlock_device fallback
+  appium_host: "http://localhost:4723"
+  adb_executable: "/opt/homebrew/bin/adb"
+  android_home: "/Users/cortex/Library/Android/sdk"
+  linkedin_package: "com.linkedin.android"
+  linkedin_activity: "com.linkedin.android.splash.SplashActivity"
+  new_command_timeout: 120
+  scroll_count: 5
+  pause_between_scrolls_seconds: 2
+  loop_sleep_interval_seconds: 3600
+  debug_screenshots: true
+  filters:
+    min_reactions: 1
+    min_comments: 1
+    min_reposts: 1

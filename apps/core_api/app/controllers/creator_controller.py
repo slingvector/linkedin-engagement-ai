@@ -74,6 +74,19 @@ async def remove_tracked_creator(
         raise HTTPException(status_code=404, detail="Creator not found")
 
 
+@radar_router.post("/ingest", status_code=status.HTTP_201_CREATED)
+async def direct_ingest_post(
+    request: dict,
+    current_user: User = Depends(get_current_user),
+    service: CreatorService = Depends(_get_creator_service),
+) -> dict:
+    """Ingest a specific post URL directly from the UI."""
+    post_url = request.get("post_url")
+    if not post_url:
+        raise HTTPException(status_code=400, detail="post_url is required")
+    return await service.ingest_post_direct(current_user.id, post_url)
+
+
 # --- Comment Copilot Endpoints ---
 
 @copilot_router.get("/feed", response_model=dict[str, Any])

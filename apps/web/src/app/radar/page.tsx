@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator"
 export default function RadarPage() {
   const queryClient = useQueryClient()
   const [newCreatorUrl, setNewCreatorUrl] = useState("")
+  const [newPostUrl, setNewPostUrl] = useState("")
   const [editedComment, setEditedComment] = useState<Record<string, string>>({})
   const [generatedDrafts, setGeneratedDrafts] = useState<Record<string, any>>({})
 
@@ -42,6 +43,24 @@ export default function RadarPage() {
     onError: (err: any) => {
       const detail = err.response?.data?.detail;
       const msg = typeof detail === 'string' ? detail : JSON.stringify(detail) || "Failed to add creator";
+      toast.error(msg);
+    }
+  })
+
+  // Direct Ingest Post
+  const directIngest = useMutation({
+    mutationFn: async (url: string) => {
+      const res = await api.post("/radar/ingest", { post_url: url })
+      return res.data
+    },
+    onSuccess: () => {
+      toast.success("Post manually ingested!")
+      setNewPostUrl("")
+      queryClient.invalidateQueries({ queryKey: ["radar-feed"] })
+    },
+    onError: (err: any) => {
+      const detail = err.response?.data?.detail;
+      const msg = typeof detail === 'string' ? detail : JSON.stringify(detail) || "Failed to ingest post";
       toast.error(msg);
     }
   })
@@ -100,19 +119,42 @@ export default function RadarPage() {
             Monitor top industry voices and use AI Comment Copilot to ghostwrite targeted replies.
           </p>
         </div>
-        <div className="flex z-10 gap-2">
-          <Input 
-            placeholder="LinkedIn Profile URL..." 
-            value={newCreatorUrl}
-            onChange={(e) => setNewCreatorUrl(e.target.value)}
-            className="w-64"
-          />
-          <Button 
-            onClick={() => addCreator.mutate(newCreatorUrl)}
-            disabled={!newCreatorUrl || addCreator.isPending}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add to Radar
-          </Button>
+        <div className="flex z-10 gap-4">
+          <div className="flex gap-2 bg-secondary/20 p-2 rounded-lg items-center border border-secondary/40 shadow-inner">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1 mr-2 hidden sm:block">
+              Ingest
+            </span>
+            <Input 
+              placeholder="LinkedIn Post URL..." 
+              value={newPostUrl}
+              onChange={(e) => setNewPostUrl(e.target.value)}
+              className="w-56 h-9"
+            />
+            <Button 
+              size="sm"
+              onClick={() => directIngest.mutate(newPostUrl)}
+              disabled={!newPostUrl || directIngest.isPending}
+              variant="secondary"
+            >
+              <Zap className="mr-2 h-4 w-4" /> Direct Ingest
+            </Button>
+          </div>
+
+          <div className="flex gap-2 p-2 items-center">
+            <Input 
+              placeholder="LinkedIn Profile URL..." 
+              value={newCreatorUrl}
+              onChange={(e) => setNewCreatorUrl(e.target.value)}
+              className="w-56 h-9"
+            />
+            <Button 
+              size="sm"
+              onClick={() => addCreator.mutate(newCreatorUrl)}
+              disabled={!newCreatorUrl || addCreator.isPending}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add to Radar
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -144,7 +186,19 @@ export default function RadarPage() {
                         </div>
                         <div className="flex-1">
                           <div className="flex justify-between items-start">
-                            <h3 className="font-semibold">{post.creator_name}</h3>
+                            <h3 className="font-semibold flex items-center gap-2">
+                              {post.creator_name}
+                              {post.post.ingestion_source === "direct" && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                                  Direct Ingest
+                                </span>
+                              )}
+                              {post.post.ingestion_source === "scheduled" && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                                  Scheduled
+                                </span>
+                              )}
+                            </h3>
                             <span className="text-xs text-muted-foreground">
                               {post.post.posted_at ? formatDistanceToNow(new Date(post.post.posted_at)) + " ago" : "Recently"}
                             </span>
@@ -225,9 +279,9 @@ export default function RadarPage() {
                                 size="sm" 
                                 className="bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 hover:text-orange-800"
                                 onClick={() => generateComments.mutate(post.post.id)}
-                                disabled={generateComments.isPending}
+                                disabled={generateComments.isPending && generateComments.variables === post.post.id}
                               >
-                                {generateComments.isPending ? "Generating Strategies (Ollama)..." : "Generate Comment Strategies"}
+                                {generateComments.isPending && generateComments.variables === post.post.id ? "Generating Strategies (Ollama)..." : "Generate Comment Strategies"}
                               </Button>
                             )}
                           </div>

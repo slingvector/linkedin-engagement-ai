@@ -46,6 +46,7 @@ class IngestedPostResponse(BaseModel):
     posted_at: datetime
     likes: int
     comments: int
+    ingestion_source: str
     is_processed: int
     created_at: datetime
 

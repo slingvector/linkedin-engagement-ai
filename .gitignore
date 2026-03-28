@@ -39,3 +39,7 @@ coverage/
 
 # Alembic
 *.db
+
+# Automated recordings
+recordings/
+*.mp4
