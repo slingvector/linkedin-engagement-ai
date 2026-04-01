@@ -98,7 +98,7 @@ class SmartFillService:
                 slot = {"day": list(_DAY_TO_WEEKDAY.keys())[i % 5], "hour": 10}
 
             weekday = _DAY_TO_WEEKDAY.get(slot["day"], 1)
-            scheduled_at = _next_occurrence(weekday, slot["hour"], now)
+            scheduled_at = _next_occurrence(weekday, slot["hour"], now).replace(tzinfo=None)
 
             post = Post(
                 user_id=user_id,
