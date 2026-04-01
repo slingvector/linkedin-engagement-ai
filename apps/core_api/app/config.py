@@ -44,7 +44,16 @@ class Settings(BaseSettings):
     linkedin_redirect_uri: str = Field(
         default="http://localhost:8000/api/v1/auth/linkedin/callback"
     )
-    linkedin_li_at_cookie: str = Field(default="")
+    
+    # --- Read Account (used by linkedin-read-flow / ingestion workers) ---
+    linkedin_read_li_at_cookie: str = Field(default="")
+    linkedin_read_email: str = Field(default="")
+    linkedin_read_password: str = Field(default="")
+    
+    # --- Write Account (used by publish/reply workers) ---
+    linkedin_write_li_at_cookie: str = Field(default="")
+    linkedin_write_email: str = Field(default="")
+    linkedin_write_password: str = Field(default="")
 
     # --- JWT ---
     jwt_secret_key: str = Field(default="change_this_to_a_random_64_char_string")

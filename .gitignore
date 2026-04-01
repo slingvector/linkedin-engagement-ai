@@ -43,3 +43,7 @@ coverage/
 # Automated recordings
 recordings/
 *.mp4
+
+# Sensitive / Keys
+modernos-edge-agent-key.json
+

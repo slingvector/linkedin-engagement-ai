@@ -30,6 +30,18 @@ class Settings(BaseSettings):
     ai_engine_api_key: str = Field(default="change_this_internal_microservice_key")
 
     # --- LLM ---
+    llm_provider: str = Field(default="ollama")
+    
+    # --- Vertex AI ---
+    gcp_project_id: str = Field(default="")
+    gcp_location: str = Field(default="us-central1")
+    vertex_model: str = Field(default="gemini-2.0-flash-001")
+    google_application_credentials: str = Field(default="")
+    
+    # --- Ollama / Local ---
+    ollama_url: str = Field(default="http://localhost:11434/v1")
+    ollama_model: str = Field(default="llama3")
+
     openai_api_key: str = Field(default="")
     gemini_api_key: str = Field(default="")
 

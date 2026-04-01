@@ -13,6 +13,8 @@ import structlog
 from app.config import get_settings, get_yaml_config
 from app.middleware.error_handler import register_error_handlers
 from app.controllers import auth_controller, health_controller, post_controller, creator_controller, idea_controller, analytics_controller, career_controller, sales_controller, talent_controller, enterprise_controller, llmops_controller, comment_controller
+from app.controllers import v2_analytics_controller
+from app.controllers import v2_calendar_controller
 from app.utils.logger import setup_logging
 from app.workers.ingestion_worker import live_viral_ingestion_loop
 from app.workers.publishing_worker import publishing_scheduler_loop
@@ -100,6 +102,8 @@ def create_app() -> FastAPI:
     app.include_router(creator_controller.copilot_router, prefix=api_prefix)
     app.include_router(idea_controller.router, prefix=api_prefix)
     app.include_router(analytics_controller.router)
+    app.include_router(v2_analytics_controller.router)  # V2 — /api/v2/analytics/heatmap
+    app.include_router(v2_calendar_controller.router)    # V2 — /api/v2/calendar/smart-fill
     app.include_router(career_controller.router)
     app.include_router(sales_controller.router, prefix=api_prefix)
     app.include_router(talent_controller.router, prefix=api_prefix)
