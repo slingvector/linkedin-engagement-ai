@@ -67,6 +67,9 @@ class Settings(BaseSettings):
     ai_engine_url: str = Field(default="http://localhost:8001")
     ai_engine_api_key: str = Field(default="change_this_internal_microservice_key")
 
+    # --- Carousel Renderer (Sprint 4 microservice) ---
+    carousel_renderer_url: str = Field(default="http://localhost:8002")
+
     # --- Observability ---
     log_level: str = Field(default="INFO")
     sentry_dsn: str = Field(default="")

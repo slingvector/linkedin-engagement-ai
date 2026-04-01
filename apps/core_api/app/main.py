@@ -15,6 +15,8 @@ from app.middleware.error_handler import register_error_handlers
 from app.controllers import auth_controller, health_controller, post_controller, creator_controller, idea_controller, analytics_controller, career_controller, sales_controller, talent_controller, enterprise_controller, llmops_controller, comment_controller
 from app.controllers import v2_analytics_controller
 from app.controllers import v2_calendar_controller
+from app.controllers import v2_posts_controller
+from app.controllers import v2_carousel_controller
 from app.utils.logger import setup_logging
 from app.workers.ingestion_worker import live_viral_ingestion_loop
 from app.workers.publishing_worker import publishing_scheduler_loop
@@ -24,6 +26,7 @@ from app.workers.lead_seeder import seed_leads_loop
 from app.workers.candidate_seeder import seed_candidates_loop
 from app.workers.signal_seeder import seed_enterprise_signals_loop
 from app.workers.evals_worker import seed_evals_loop
+from app.workers.engagement_sync_worker import engagement_sync_loop
 import asyncio
 
 logger = structlog.get_logger()
@@ -49,6 +52,7 @@ async def lifespan(app: FastAPI):
     # candidate_seeder_task = asyncio.create_task(seed_candidates_loop())
     # signal_seeder_task = asyncio.create_task(seed_enterprise_signals_loop())
     evals_task = asyncio.create_task(seed_evals_loop())
+    engagement_sync_task = asyncio.create_task(engagement_sync_loop())
 
     yield
     
@@ -61,6 +65,7 @@ async def lifespan(app: FastAPI):
     # candidate_seeder_task.cancel()
     # signal_seeder_task.cancel()
     evals_task.cancel()
+    engagement_sync_task.cancel()
     logger.info("app_shutting_down", service="core_api")
 
 
@@ -104,6 +109,8 @@ def create_app() -> FastAPI:
     app.include_router(analytics_controller.router)
     app.include_router(v2_analytics_controller.router)  # V2 — /api/v2/analytics/heatmap
     app.include_router(v2_calendar_controller.router)    # V2 — /api/v2/calendar/smart-fill
+    app.include_router(v2_posts_controller.router)       # V2 — /api/v2/posts/{id}/score
+    app.include_router(v2_carousel_controller.router)    # V2 — /api/v2/posts/{id}/carousel
     app.include_router(career_controller.router)
     app.include_router(sales_controller.router, prefix=api_prefix)
     app.include_router(talent_controller.router, prefix=api_prefix)
