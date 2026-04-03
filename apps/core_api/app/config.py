@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     linkedin_write_email: str = Field(default="")
     linkedin_write_password: str = Field(default="")
 
+    # --- LinkedIn Write-Flow OAuth (V2 Carousel publish) ---
+    linkedin_write_client_id: str = Field(default="")
+    linkedin_write_client_secret: str = Field(default="")
+    linkedin_write_redirect_uri: str = Field(
+        default="http://localhost:8000/api/v2/auth/linkedin/callback"
+    )
+
     # --- JWT ---
     jwt_secret_key: str = Field(default="change_this_to_a_random_64_char_string")
     jwt_algorithm: str = Field(default="HS256")

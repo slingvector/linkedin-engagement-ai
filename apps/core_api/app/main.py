@@ -17,6 +17,7 @@ from app.controllers import v2_analytics_controller
 from app.controllers import v2_calendar_controller
 from app.controllers import v2_posts_controller
 from app.controllers import v2_carousel_controller
+from app.controllers.v2.auth_controller import router as v2_auth_router
 from app.utils.logger import setup_logging
 from app.workers.ingestion_worker import live_viral_ingestion_loop
 from app.workers.publishing_worker import publishing_scheduler_loop
@@ -111,6 +112,7 @@ def create_app() -> FastAPI:
     app.include_router(v2_calendar_controller.router)    # V2 — /api/v2/calendar/smart-fill
     app.include_router(v2_posts_controller.router)       # V2 — /api/v2/posts/{id}/score
     app.include_router(v2_carousel_controller.router)    # V2 — /api/v2/posts/{id}/carousel
+    app.include_router(v2_auth_router, prefix="/api/v2") # V2 — /api/v2/auth/linkedin
     app.include_router(career_controller.router)
     app.include_router(sales_controller.router, prefix=api_prefix)
     app.include_router(talent_controller.router, prefix=api_prefix)

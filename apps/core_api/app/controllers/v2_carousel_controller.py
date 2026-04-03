@@ -16,7 +16,6 @@ from app.dependencies import get_current_user, get_db
 from app.models.user import User
 from app.repositories.post_repository import PostRepository
 from app.services.carousel_service import CarouselService
-from app.utils.security import decrypt_token
 
 logger = structlog.get_logger()
 
@@ -153,37 +152,37 @@ async def publish_carousel(
     current_user: User = Depends(get_current_user),
     service: CarouselService = Depends(get_carousel_service),
 ):
-    # Get the most recent asset
+    # Get the most recent carousel asset for this post
     asset = await service.get_by_post(post_id)
     if not asset:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No carousel found")
-
-    # Decrypt LinkedIn access token
-    if not current_user.access_token_encrypted:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="LinkedIn OAuth token not found — please re-authenticate",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No carousel found for this post. POST to /{post_id}/carousel first.",
         )
-    try:
-        access_token = decrypt_token(current_user.access_token_encrypted)
-    except Exception:
+
+    if not asset.pdf_url:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not decrypt LinkedIn token — please re-authenticate",
+            detail="Carousel PDF not yet rendered. Re-generate the carousel first.",
         )
 
     try:
         li_post_urn = await service.publish_to_linkedin(
             asset_id=asset.id,
             user_id=current_user.id,
-            access_token=access_token,
             post_text=body.post_text,
         )
-    except (ValueError, FileNotFoundError) as e:
+    except ValueError as e:
+        # Covers: write-flow not connected, PDF missing, token expired
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except FileNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         logger.error("carousel_publish_failed", error=str(e))
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="LinkedIn publish failed")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"LinkedIn publish failed: {e}",
+        )
 
     return PublishCarouselResponse(
         linkedin_post_urn=li_post_urn,

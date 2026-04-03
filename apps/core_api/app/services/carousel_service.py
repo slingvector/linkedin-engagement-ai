@@ -30,8 +30,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.models.carousel import CarouselAsset
 from app.models.post import Post
+from app.models.user import User
 from app.models.user_settings import UserSettings
 from app.repositories.post_repository import PostRepository
+from app.utils.security import decrypt_token
 
 logger = structlog.get_logger()
 
@@ -117,13 +119,14 @@ class CarouselService:
         self,
         asset_id: UUID,
         user_id: UUID,
-        access_token: str,
         post_text: str,
     ) -> str:
         """
         LinkedIn 3-step Document Upload.
+        Reads the write-flow access token from the User record.
         Returns the LinkedIn post URN on success.
         """
+        # Load asset
         result = await self._db.execute(
             select(CarouselAsset).where(CarouselAsset.id == asset_id)
         )
@@ -136,6 +139,19 @@ class CarouselService:
         if not pdf_path.exists():
             raise FileNotFoundError(f"PDF not found at {pdf_path}")
         pdf_bytes = pdf_path.read_bytes()
+
+        # Load user to get write-flow token + person ID
+        user_result = await self._db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        if not user or not user.write_access_token_encrypted:
+            raise ValueError(
+                "LinkedIn write-flow not connected. "
+                "Visit GET /api/v2/auth/linkedin to authorize posting."
+            )
+
+        access_token = decrypt_token(user.write_access_token_encrypted)
+        person_id = user.linkedin_person_id or user.linkedin_id  # fall back to slug
+        person_urn = f"urn:li:person:{person_id}"
 
         headers = {
             "Authorization": f"Bearer {access_token}",
@@ -150,32 +166,43 @@ class CarouselService:
                 params={"action": "initializeUpload"},
                 json={
                     "initializeUploadRequest": {
-                        "owner": f"urn:li:person:{user_id}",
+                        "owner": person_urn,
                     }
                 },
                 headers=headers,
             )
+            if init_resp.status_code == 401:
+                raise ValueError("LinkedIn write token expired. Re-authorize via /api/v2/auth/linkedin")
             init_resp.raise_for_status()
             init_data = init_resp.json().get("value", {})
             upload_url = init_data.get("uploadUrl")
             document_urn = init_data.get("document")
 
             if not upload_url or not document_urn:
-                raise RuntimeError("LinkedIn upload initialization failed")
+                raise RuntimeError("LinkedIn upload initialization failed — no uploadUrl returned")
+
+            logger.info(
+                "carousel_upload_initialized",
+                document_urn=document_urn,
+                person_urn=person_urn,
+            )
 
             # Step 2: Upload PDF binary
             put_resp = await client.put(
                 upload_url,
                 content=pdf_bytes,
-                headers={"Authorization": f"Bearer {access_token}"},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/octet-stream",
+                },
             )
             put_resp.raise_for_status()
 
-            # Step 3: Create the post
+            # Step 3: Create the LinkedIn post
             post_resp = await client.post(
                 "https://api.linkedin.com/rest/posts",
                 json={
-                    "author": f"urn:li:person:{user_id}",
+                    "author": person_urn,
                     "commentary": post_text,
                     "visibility": "PUBLIC",
                     "distribution": {
@@ -194,6 +221,8 @@ class CarouselService:
                 },
                 headers=headers,
             )
+            if post_resp.status_code == 401:
+                raise ValueError("LinkedIn post creation refused — token may lack w_member_social scope")
             post_resp.raise_for_status()
             li_post_urn = post_resp.headers.get("x-restli-id", "")
 
