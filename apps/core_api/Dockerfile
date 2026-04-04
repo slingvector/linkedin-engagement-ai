@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && \
 # Install project dependencies
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir .
-RUN playwright install chromium && playwright install-deps chromium
+
 
 # Copy application code
 COPY . .

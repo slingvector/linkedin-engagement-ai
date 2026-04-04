@@ -19,7 +19,6 @@ from app.controllers import v2_posts_controller
 from app.controllers import v2_carousel_controller
 from app.controllers.v2.auth_controller import router as v2_auth_router
 from app.utils.logger import setup_logging
-from app.workers.ingestion_worker import live_viral_ingestion_loop
 from app.workers.publishing_worker import publishing_scheduler_loop
 from app.workers.metrics_worker import poll_metrics_and_classifications
 from app.workers.job_seeder import sync_remote_job_board
@@ -45,7 +44,6 @@ async def lifespan(app: FastAPI):
     )
     
     # Start background workers
-    ingestion_task = asyncio.create_task(live_viral_ingestion_loop())
     publishing_task = asyncio.create_task(publishing_scheduler_loop())
     metrics_task = asyncio.create_task(poll_metrics_and_classifications())
     # job_seeder_task = asyncio.create_task(sync_remote_job_board())
@@ -58,7 +56,6 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown: Clean up connections
-    ingestion_task.cancel()
     publishing_task.cancel()
     metrics_task.cancel()
     # job_seeder_task.cancel()
