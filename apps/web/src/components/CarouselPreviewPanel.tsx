@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/lib/api"
+import { api, apiV2 } from "@/lib/api"
 import { toast } from "sonner"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -164,7 +164,7 @@ export function CarouselPreviewPanel({ postId, postCaption = "" }: Props) {
   const { data: asset, isLoading: fetchLoading } = useQuery<CarouselAsset>({
     queryKey: ["carousel", postId],
     queryFn: async () => {
-      const res = await api.get(`/v2/posts/${postId}/carousel`)
+      const res = await apiV2.get(`/posts/${postId}/carousel`)
       return res.data
     },
     retry: false,
@@ -173,7 +173,7 @@ export function CarouselPreviewPanel({ postId, postCaption = "" }: Props) {
   // ── Generate carousel ─────────────────────────────────────────────────────
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.post(`/v2/posts/${postId}/carousel`)
+      const res = await apiV2.post(`/posts/${postId}/carousel`)
       return res.data as CarouselAsset
     },
     onSuccess: (data) => {
@@ -187,7 +187,7 @@ export function CarouselPreviewPanel({ postId, postCaption = "" }: Props) {
   // ── Publish to LinkedIn ───────────────────────────────────────────────────
   const publishMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.post(`/v2/posts/${postId}/carousel/publish`, {
+      const res = await apiV2.post(`/posts/${postId}/carousel/publish`, {
         post_text: caption,
       })
       return res.data

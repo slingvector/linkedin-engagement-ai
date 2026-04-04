@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useMutation } from "@tanstack/react-query"
-import { api } from "@/lib/api"
+import { api, apiV2 } from "@/lib/api"
 import { toast } from "sonner"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ export function ViralityBadge({ postId, initialData }: Props) {
 
   const scoreMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.post(`/v2/posts/${postId}/score`)
+      const res = await apiV2.post(`/posts/${postId}/score`)
       return res.data as ViralityData
     },
     onSuccess: (res) => {

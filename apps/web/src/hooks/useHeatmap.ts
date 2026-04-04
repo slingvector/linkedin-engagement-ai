@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { api } from "@/lib/api"
+import { api, apiV2 } from "@/lib/api"
 
 export type HeatmapData = {
   heatmap: Record<string, Record<string, number>>
@@ -15,7 +15,7 @@ export function useHeatmap(weeks = 8) {
   return useQuery<HeatmapData>({
     queryKey: ["heatmap", weeks],
     queryFn: async () => {
-      const res = await api.get(`/api/v2/analytics/heatmap?weeks=${weeks}`)
+      const res = await apiV2.get(`/analytics/heatmap?weeks=${weeks}`)
       return res.data
     },
     staleTime: 1000 * 60 * 30, // 30 min — heatmap is stable

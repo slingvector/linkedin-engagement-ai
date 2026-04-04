@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/lib/api"
+import { api, apiV2 } from "@/lib/api"
 import { format, parseISO } from "date-fns"
 import {
   Sparkles, X, Plus, Minus, Loader2, FileText,
@@ -113,7 +113,7 @@ export function SmartFillDrawer({ open, onClose, onPostsCreated }: Props) {
     mutationFn: async () => {
       const validPillars = pillars.filter(p => p.trim().length > 0)
       if (validPillars.length === 0) throw new Error("Add at least one content pillar")
-      const res = await api.post("/api/v2/calendar/smart-fill", {
+      const res = await apiV2.post("/calendar/smart-fill", {
         pillars: validPillars,
         posts_per_week: postsPerWeek,
         preferred_formats: selectedFormats,
