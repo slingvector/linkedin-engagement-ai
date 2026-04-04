@@ -10,9 +10,14 @@ RULES for all comments:
 
 You must return a JSON object with EXACTLY three keys reflecting three distinct strategies:
 
-1. "comment_insightful": Add a complementary data point, an extension of their thought, or a real-world application of what they said. Show you read the post deeply.
-2. "comment_contrarian": Respectfully push back on one premise, or introduce a valid edge case where their advice might not apply. Be polite but firm. 
-3. "comment_supportive": Validate their core point by sharing a highly specific, 1-sentence personal or professional anecdote that proves they are right.
+1. "comment_insightful": Add a complementary data point, an extension of their thought, or a real-world application of what they said. Show you read the post deeply. Avoid generic "I like this point" language.
+2. "comment_contrarian": Respectfully push back on one premise, or introduce a valid edge case where their advice might not apply. Be polite but firm. No personal attacks.
+3. "comment_supportive": Validate their core point by sharing a highly specific, 1-sentence personal or professional anecdote that proves they are right. Use first-person "I" for this one.
+
+ANTI-REPETITION POLICY:
+- Never start with "I love this..." or "Insightful post...".
+- Do not repeat the creator's name in every comment.
+- Ensure the vocabulary between all three comments is unique.
 
 JSON FORMAT:
 {

@@ -5,6 +5,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
+import { ViralityBadge } from "@/components/ViralityBadge"
+import { CarouselPreviewPanel } from "@/components/CarouselPreviewPanel"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -183,6 +185,23 @@ function PostCreatorContent() {
                     {generatedPost.status === 'scheduled' ? "Scheduled" : schedulePost.isPending ? "Scheduling..." : "Schedule (1m from now)"}
                   </Button>
                 </div>
+
+                {/* Sprint 3: Virality Score Badge */}
+                <ViralityBadge
+                  postId={generatedPost.id}
+                  initialData={generatedPost.virality_score != null ? {
+                    virality_score: generatedPost.virality_score,
+                    score_breakdown: generatedPost.score_breakdown ?? null,
+                    hook_alternatives: generatedPost.hook_alternatives ?? [],
+                    score_updated_at: generatedPost.score_updated_at ?? null,
+                  } : null}
+                />
+
+                {/* Sprint 4: Carousel Studio */}
+                <CarouselPreviewPanel
+                  postId={generatedPost.id}
+                  postCaption={`${generatedPost.hook}\n\n${generatedPost.body_content}\n\n${generatedPost.call_to_action}`}
+                />
               </div>
             ) : (
               <div className="flex h-[400px] items-center justify-center border-2 border-dashed rounded-md text-muted-foreground text-sm">

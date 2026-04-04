@@ -44,7 +44,23 @@ class Settings(BaseSettings):
     linkedin_redirect_uri: str = Field(
         default="http://localhost:8000/api/v1/auth/linkedin/callback"
     )
-    linkedin_li_at_cookie: str = Field(default="")
+    
+    # --- Read Account (used by linkedin-read-flow / ingestion workers) ---
+    linkedin_read_li_at_cookie: str = Field(default="")
+    linkedin_read_email: str = Field(default="")
+    linkedin_read_password: str = Field(default="")
+    
+    # --- Write Account (used by publish/reply workers) ---
+    linkedin_write_li_at_cookie: str = Field(default="")
+    linkedin_write_email: str = Field(default="")
+    linkedin_write_password: str = Field(default="")
+
+    # --- LinkedIn Write-Flow OAuth (V2 Carousel publish) ---
+    linkedin_write_client_id: str = Field(default="")
+    linkedin_write_client_secret: str = Field(default="")
+    linkedin_write_redirect_uri: str = Field(
+        default="http://localhost:8000/api/v2/auth/linkedin/callback"
+    )
 
     # --- JWT ---
     jwt_secret_key: str = Field(default="change_this_to_a_random_64_char_string")
@@ -57,6 +73,9 @@ class Settings(BaseSettings):
     # --- AI Engine ---
     ai_engine_url: str = Field(default="http://localhost:8001")
     ai_engine_api_key: str = Field(default="change_this_internal_microservice_key")
+
+    # --- Carousel Renderer (Sprint 4 microservice) ---
+    carousel_renderer_url: str = Field(default="http://carousel_renderer:8002")
 
     # --- Observability ---
     log_level: str = Field(default="INFO")
