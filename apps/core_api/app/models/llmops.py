@@ -13,7 +13,7 @@ class ShadowActionLog(Base):
     __tablename__ = "shadow_action_logs"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True)
     
     action_type: Mapped[str] = mapped_column(String) # e.g. "post_generation", "dm_draft", "comment_reply"
     
