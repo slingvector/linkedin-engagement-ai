@@ -28,7 +28,7 @@ services:
       - redis_prod_data:/data
 
   ai_engine:
-    image: ghcr.io/slingvector/linkedin-engagement-ai-ai_engine:v1.2.2
+    image: ghcr.io/slingvector/linkedin-engagement-ai-ai_engine:v1.2.1
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
@@ -39,10 +39,17 @@ services:
     environment:
       - AI_ENGINE_API_KEY=${AI_ENGINE_API_KEY:-change_this_internal_microservice_key}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - OLLAMA_API_BASE=http://host.docker.internal:11434
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LLM_PROVIDER=vertexai
+      - GCP_PROJECT_ID=mcr-relay-1772228380
+      - GCP_LOCATION=us-central1
+      - VERTEX_MODEL=gemini-2.0-flash-001
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/modernos-edge-agent-key.json
+    volumes:
+      - /Users/cortex/ventures/linkedin-as-a-service/modernos-edge-agent-key.json:/app/modernos-edge-agent-key.json:ro
       
   core_api: # NO PORTS EXPOSED. ISOLATED.
-    image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:v1.2.2
+    image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:v1.2.1
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
@@ -52,14 +59,25 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-linkedin_os_prod}
       - REDIS_URL=redis://redis:6379/0
       - AI_ENGINE_URL=http://ai_engine:8001
+      - CAROUSEL_RENDERER_URL=http://carousel_renderer:8002
       - FRONTEND_URL=http://localhost:3000
     depends_on:
       - postgres
       - redis
       - ai_engine
+      - carousel_renderer
+
+  carousel_renderer:
+    build:
+      context: ./apps/carousel_renderer
+    platform: linux/amd64
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "8002:8002"
 
   ingestion_worker:
-    image: ghcr.io/slingvector/linkedin-engagement-ai-ingestion_worker:v1.2.2
+    image: ghcr.io/slingvector/linkedin-engagement-ai-ingestion_worker:v1.2.1
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
@@ -72,7 +90,7 @@ services:
       - postgres
 
   web:
-    image: ghcr.io/slingvector/linkedin-engagement-ai-web:v1.2.2
+    image: ghcr.io/slingvector/linkedin-engagement-ai-web:v1.2.1
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging

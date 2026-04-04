@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     ai_engine_api_key: str = Field(default="change_this_internal_microservice_key")
 
     # --- LLM ---
-    llm_provider: str = Field(default="ollama")
+    llm_provider: str = Field(default="openai")
     
     # --- Vertex AI ---
     gcp_project_id: str = Field(default="")
