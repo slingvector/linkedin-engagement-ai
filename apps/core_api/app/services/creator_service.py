@@ -83,7 +83,7 @@ class CreatorService:
         """Manual trigger to ingest a post URL directly and extract basic info."""
         import re
         from datetime import datetime, timezone
-from app.models.creator import TrackedCreator, IngestedPost
+        from app.models.creator import TrackedCreator, IngestedPost
 
         # Ex: https://www.linkedin.com/posts/gaganbiyani_a-junior-employee-really-screwed-...
         creator_slug = "unknown"
