@@ -145,8 +145,7 @@ class CarouselService:
         user = user_result.scalar_one_or_none()
         if not user or not user.write_access_token_encrypted:
             raise ValueError(
-                "LinkedIn write-flow not connected. "
-                "Visit GET /api/v2/auth/linkedin to authorize posting."
+                "write_flow_not_connected"
             )
 
         access_token = decrypt_token(user.write_access_token_encrypted)
@@ -157,6 +156,7 @@ class CarouselService:
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
             "X-Restli-Protocol-Version": "2.0.0",
+            "LinkedIn-Version": "202603",
         }
 
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -171,9 +171,14 @@ class CarouselService:
                 },
                 headers=headers,
             )
-            if init_resp.status_code == 401:
-                raise ValueError("LinkedIn write token expired. Re-authorize via /api/v2/auth/linkedin")
-            init_resp.raise_for_status()
+            if init_resp.status_code != 200:
+                logger.error("linkedin_init_upload_failed",
+                             status=init_resp.status_code,
+                             body=init_resp.text)
+                if init_resp.status_code == 401:
+                    raise ValueError("LinkedIn write token expired. Please re-authorize.")
+                init_resp.raise_for_status()
+
             init_data = init_resp.json().get("value", {})
             upload_url = init_data.get("uploadUrl")
             document_urn = init_data.get("document")
@@ -181,11 +186,7 @@ class CarouselService:
             if not upload_url or not document_urn:
                 raise RuntimeError("LinkedIn upload initialization failed — no uploadUrl returned")
 
-            logger.info(
-                "carousel_upload_initialized",
-                document_urn=document_urn,
-                person_urn=person_urn,
-            )
+            logger.info("carousel_upload_initialized", document_urn=document_urn, person_urn=person_urn)
 
             # Step 2: Upload PDF binary
             put_resp = await client.put(
@@ -196,7 +197,9 @@ class CarouselService:
                     "Content-Type": "application/octet-stream",
                 },
             )
-            put_resp.raise_for_status()
+            if put_resp.status_code not in (200, 201):
+                logger.error("linkedin_pdf_upload_failed", status=put_resp.status_code, body=put_resp.text)
+                put_resp.raise_for_status()
 
             # Step 3: Create the LinkedIn post
             post_resp = await client.post(
@@ -221,9 +224,14 @@ class CarouselService:
                 },
                 headers=headers,
             )
-            if post_resp.status_code == 401:
-                raise ValueError("LinkedIn post creation refused — token may lack w_member_social scope")
-            post_resp.raise_for_status()
+            if post_resp.status_code != 201:
+                logger.error("linkedin_post_creation_failed",
+                             status=post_resp.status_code,
+                             body=post_resp.text)
+                if post_resp.status_code == 401:
+                    raise ValueError("LinkedIn post creation refused — re-authorize to grant w_member_social scope.")
+                post_resp.raise_for_status()
+
             li_post_urn = post_resp.headers.get("x-restli-id", "")
 
         # Update asset with LinkedIn URN

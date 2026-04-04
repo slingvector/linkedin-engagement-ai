@@ -158,6 +158,7 @@ function SlideDetail({ slide, brandColor = "#0A66C2" }: { slide: Slide; brandCol
 export function CarouselPreviewPanel({ postId, postCaption = "" }: Props) {
   const [activeSlide, setActiveSlide] = useState(0)
   const [caption, setCaption] = useState(postCaption)
+  const [needsWriteAuth, setNeedsWriteAuth] = useState(false)
   const queryClient = useQueryClient()
 
   // ── Fetch existing carousel ───────────────────────────────────────────────
@@ -194,10 +195,31 @@ export function CarouselPreviewPanel({ postId, postCaption = "" }: Props) {
     },
     onSuccess: () => {
       toast.success("Carousel published to LinkedIn! 🚀")
+      setNeedsWriteAuth(false)
       queryClient.invalidateQueries({ queryKey: ["carousel", postId] })
     },
-    onError: () => toast.error("LinkedIn publish failed — check OAuth token"),
+    onError: (error: any) => {
+      const detail = error.response?.data?.detail
+      if (detail === "write_flow_not_connected" || (typeof detail === "string" && detail.includes("token expired"))) {
+        setNeedsWriteAuth(true)
+        toast.error("LinkedIn Write Access required")
+      } else {
+        toast.error(typeof detail === "string" ? detail : "LinkedIn publish failed")
+      }
+    },
   })
+
+  // ── Handle Auth Redirect ──────────────────────────────────────────────────
+  const handleConnectWriteFlow = async () => {
+    try {
+      const res = await apiV2.get("/auth/linkedin")
+      if (res.data?.auth_url) {
+        window.location.href = res.data.auth_url
+      }
+    } catch (err) {
+      toast.error("Failed to initiate LinkedIn connection")
+    }
+  }
 
   const brandColor = asset?.brand_kit?.primary_color ?? "#0A66C2"
   const slides = asset?.slides ?? []
@@ -358,29 +380,46 @@ export function CarouselPreviewPanel({ postId, postCaption = "" }: Props) {
             width: "100%",
           }}
         />
-        <button
-          id="publish-carousel-btn"
-          onClick={() => publishMutation.mutate()}
-          disabled={publishMutation.isPending || !caption.trim() || asset.status === "published"}
-          style={{
-            background: asset.status === "published"
-              ? "rgba(34,197,94,0.2)"
-              : "linear-gradient(135deg, #0A66C2, #0052a3)",
-            border: asset.status === "published" ? "1px solid rgba(34,197,94,0.3)" : "none",
-            borderRadius: 12, color: "#fff", fontWeight: 700, fontSize: 14,
-            padding: "14px 24px", cursor: publishMutation.isPending || asset.status === "published" ? "not-allowed" : "pointer",
-            opacity: publishMutation.isPending ? 0.7 : 1,
-            boxShadow: asset.status === "published" ? "none" : "0 4px 20px rgba(10,102,194,0.4)",
-            transition: "all 0.2s",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          }}
-        >
-          {publishMutation.isPending
-            ? "Publishing..."
-            : asset.status === "published"
-            ? "✅ Published to LinkedIn"
-            : "🚀 Publish Carousel to LinkedIn"}
-        </button>
+        {needsWriteAuth ? (
+          <button
+            id="connect-write-flow-btn"
+            onClick={handleConnectWriteFlow}
+            style={{
+              background: "#000",
+              border: "1px solid #0A66C2",
+              borderRadius: 12, color: "#0A66C2", fontWeight: 700, fontSize: 14,
+              padding: "14px 24px", cursor: "pointer",
+              transition: "all 0.2s",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            🔑 Connect LinkedIn Publishing Access
+          </button>
+        ) : (
+          <button
+            id="publish-carousel-btn"
+            onClick={() => publishMutation.mutate()}
+            disabled={publishMutation.isPending || !caption.trim() || asset.status === "published"}
+            style={{
+              background: asset.status === "published"
+                ? "rgba(34,197,94,0.2)"
+                : "linear-gradient(135deg, #0A66C2, #0052a3)",
+              border: asset.status === "published" ? "1px solid rgba(34,197,94,0.3)" : "none",
+              borderRadius: 12, color: "#fff", fontWeight: 700, fontSize: 14,
+              padding: "14px 24px", cursor: publishMutation.isPending || asset.status === "published" ? "not-allowed" : "pointer",
+              opacity: publishMutation.isPending ? 0.7 : 1,
+              boxShadow: asset.status === "published" ? "none" : "0 4px 20px rgba(10,102,194,0.4)",
+              transition: "all 0.2s",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            {publishMutation.isPending
+              ? "Publishing..."
+              : asset.status === "published"
+              ? "✅ Published to LinkedIn"
+              : "🚀 Publish Carousel to LinkedIn"}
+          </button>
+        )}
       </div>
     </div>
   )

@@ -14,7 +14,7 @@ from urllib.parse import urlencode
 
 import httpx
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -30,8 +30,24 @@ router = APIRouter(prefix="/auth", tags=["v2-auth"])
 _write_oauth_states: dict[str, str] = {}  # state → user_id
 
 
+def _get_redirect_uri(request: Request, settings) -> str:
+    """
+    Resolves the redirect URI dynamically.
+    If the request comes through a Cloudflare tunnel, we use the tunnel's hostname
+    to ensure LinkedIn's redirect returns the user to the correct origin.
+    """
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or ""
+    if "trycloudflare.com" in host:
+        # Tunnel detected: use the tunnel's HTTPS origin
+        return f"https://{host}/api/v2/auth/linkedin/callback"
+
+    # Default to the configured URI (usually localhost in dev)
+    return settings.linkedin_write_redirect_uri
+
+
 @router.get("/linkedin", summary="Start LinkedIn write-flow OAuth consent")
 async def write_flow_login(
+    request: Request,
     current_user: User = Depends(get_current_user),
 ) -> dict:
     """
@@ -46,20 +62,24 @@ async def write_flow_login(
     _write_oauth_states[state] = str(current_user.id)
 
     params = {
-        "response_type": "code",
-        "client_id": settings.linkedin_write_client_id,
-        "redirect_uri": settings.linkedin_write_redirect_uri,
-        "scope": "w_member_social openid profile",
-        "state": state,
+        "params": {
+            "response_type": "code",
+            "client_id": settings.linkedin_write_client_id,
+            "redirect_uri": _get_redirect_uri(request, settings),
+            "scope": "w_member_social openid profile email",
+            "state": state,
+        }
     }
 
-    auth_url = f"https://www.linkedin.com/oauth/v2/authorization?{urlencode(params)}"
+    # Note: urlencode(params["params"]) is correct
+    auth_url = f"https://www.linkedin.com/oauth/v2/authorization?{urlencode(params['params'])}"
     logger.info("write_flow_oauth_initiated", user_id=str(current_user.id), state=state[:8])
     return {"auth_url": auth_url}
 
 
 @router.get("/linkedin/callback", summary="Handle LinkedIn write-flow OAuth callback")
 async def write_flow_callback(
+    request: Request,
     code: str = Query(..., description="Authorization code from LinkedIn"),
     state: str = Query(..., description="CSRF state parameter"),
     db: AsyncSession = Depends(get_db),
@@ -82,17 +102,22 @@ async def write_flow_callback(
     # 2. Exchange code for access token
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
+            redirect_uri = _get_redirect_uri(request, settings)
             token_resp = await client.post(
                 "https://www.linkedin.com/oauth/v2/accessToken",
                 data={
                     "grant_type": "authorization_code",
                     "code": code,
-                    "redirect_uri": settings.linkedin_write_redirect_uri,
+                    "redirect_uri": redirect_uri,
                     "client_id": settings.linkedin_write_client_id,
                     "client_secret": settings.linkedin_write_client_secret,
                 },
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
+            if token_resp.status_code != 200:
+                logger.error("linkedin_token_exchange_error",
+                             status=token_resp.status_code,
+                             body=token_resp.text)
             token_resp.raise_for_status()
             token_data = token_resp.json()
     except Exception as e:

@@ -1,0 +1,103 @@
+# docker-compose.local.yml
+# Use this for IMMEDIATE local testing from source code (bypasses GHCR build)
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: linkedin_local_postgres
+    environment:
+      POSTGRES_DB: linkedin_saas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: changeme_local_only
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: linkedin_local_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ai_engine:
+    build:
+      context: ./apps/ai_engine
+    platform: linux/amd64
+    env_file: .env
+    environment:
+      - LLM_PROVIDER=vertexai
+      - GCP_PROJECT_ID=mcr-relay-1772228380
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/modernos-edge-agent-key.json
+    volumes:
+      - ./modernos-edge-agent-key.json:/app/modernos-edge-agent-key.json:ro
+    depends_on:
+      - redis
+
+  carousel_renderer:
+    build:
+      context: ./apps/carousel_renderer
+    ports:
+      - "8002:8002"
+    depends_on:
+      - redis
+
+  core_api:
+    build:
+      context: ./apps/core_api
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:changeme_local_only@postgres:5432/linkedin_saas
+      - REDIS_URL=redis://redis:6379/0
+      - AI_ENGINE_URL=http://ai_engine:8001
+      - RENDERER_URL=http://carousel_renderer:8002
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./tmp/carousel_pdfs:/tmp/carousel_pdfs
+
+  ingestion_worker:
+    build:
+      context: ./apps/core_api
+    command: ["python", "-m", "app.workers.ingestion_worker"]
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:changeme_local_only@postgres:5432/linkedin_saas
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+
+  web:
+    build:
+      context: ./apps/web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=/api/v1
+      - NEXT_PUBLIC_API_V2_URL=/api/v2
+      - CORE_API_INTERNAL_URL=http://core_api:8000
+    depends_on:
+      - core_api
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
