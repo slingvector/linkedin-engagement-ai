@@ -29,6 +29,8 @@ services:
 
   ai_engine:
     image: ghcr.io/slingvector/linkedin-engagement-ai-ai_engine:v1.2.6
+    build:
+      context: ./apps/ai_engine
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
@@ -50,6 +52,8 @@ services:
       
   core_api: # NO PORTS EXPOSED. ISOLATED.
     image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:v1.2.6
+    build:
+      context: ./apps/core_api
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
@@ -78,6 +82,8 @@ services:
 
   ingestion_worker:
     image: ghcr.io/slingvector/linkedin-engagement-ai-ingestion_worker:v1.2.6
+    build:
+      context: ./apps/core_api
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
@@ -91,6 +97,8 @@ services:
 
   web:
     image: ghcr.io/slingvector/linkedin-engagement-ai-web:v1.2.6
+    build:
+      context: ./apps/web
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging

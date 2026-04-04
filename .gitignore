@@ -47,3 +47,7 @@ recordings/
 # Sensitive / Keys
 modernos-edge-agent-key.json
 
+# Runtime / Temp
+cloudflared.log
+tmp/
+

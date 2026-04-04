@@ -86,6 +86,7 @@ class LLMService:
                 config = types.GenerateContentConfig(
                     system_instruction=system_prompt,
                     response_mime_type="application/json",
+                    response_schema=response_schema,
                     temperature=temperature,
                     max_output_tokens=max_tokens,
                 )
