@@ -95,5 +95,22 @@ services:
       - core_api
     logging: *default-logging
 
+  # ── Ingestion Worker ──────────────────────────────────────────────────────
+  # Scrapes LinkedIn feed and stores creator posts in Postgres.
+  # Start with: IMAGE_TAG=v1.x.x docker compose -f docker-compose.local.yml --profile ingestion up
+  ingestion_worker:
+    image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:${IMAGE_TAG:-latest}
+    container_name: linkedin_staging_ingestion_worker
+    platform: linux/amd64
+    profiles: ["ingestion"]
+    command: ["python", "-m", "app.workers.bulk_ingestion_worker"]
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme_local_only}@postgres:5432/${POSTGRES_DB:-linkedin_saas}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+
 volumes:
   postgres_staging_data:
