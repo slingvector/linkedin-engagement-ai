@@ -1,6 +1,8 @@
 import asyncio
+import os
 import time
 import structlog
+import httpx
 from uuid import uuid4
 from datetime import datetime, timezone
 from typing import Any
@@ -15,6 +17,22 @@ from app.repositories.creator_repository import CreatorRepository
 from app.config import get_settings
 
 logger = structlog.get_logger()
+
+
+def send_alert(message: str) -> None:
+    """Send a Telegram alert. Silently skips if not configured."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        return
+    try:
+        httpx.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": f"🚨 LinkedIn Ingestion\n{message}"},
+            timeout=5,
+        )
+    except Exception:
+        pass  # Never let alerting crash the worker
 
 class PostgresStorageAdapter(StorageProtocol):
     """
@@ -140,7 +158,12 @@ def run_bulk_ingestion():
     try:
         flow = ReadFlow(storage=PostgresStorageAdapter())
     except SystemExit as e:
-        logger.error("read_flow_auth_failed", hint="Ensure LINKEDIN_READ_LI_AT or READ_EMAIL is set in .env")
+        msg = str(e)
+        logger.error("read_flow_auth_failed", error=msg)
+        if "CAPTCHA" in msg or "2FA" in msg or "challenge" in msg.lower():
+            send_alert("⚠️ LinkedIn CAPTCHA/2FA triggered.\nLog in manually, solve the challenge, then update li_at in .env and restart.")
+        else:
+            send_alert(f"❌ LinkedIn auth failed at startup.\nCheck LINKEDIN_READ_LI_AT / EMAIL / PASSWORD in .env.\n\n{msg}")
         return
 
     # Trial Run: Fetch own feed periodically
@@ -150,15 +173,18 @@ def run_bulk_ingestion():
             result = flow.fetch_feed()
             
             if result.get("success"):
-                logger.info("bulk_ingestion_feed_success", 
+                logger.info("bulk_ingestion_feed_success",
                             fetched=result.get("fetched"),
                             saved=result.get("saved"),
                             skipped_duplicate=result.get("skipped_duplicate"))
             else:
-                logger.error("bulk_ingestion_feed_failed", error=result.get("error"))
-                
+                error = result.get("error", "unknown")
+                logger.error("bulk_ingestion_feed_failed", error=error)
+                send_alert(f"❌ LinkedIn feed fetch failed.\nError: {error}")
+
         except Exception as e:
             logger.exception("bulk_ingestion_loop_error", exc_info=e)
+            send_alert(f"💥 Ingestion worker crashed.\n{type(e).__name__}: {e}")
             
         logger.info("bulk_ingestion_sleeping", interval=3600)
         time.sleep(3600)
