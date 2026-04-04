@@ -35,6 +35,7 @@ from app.models.user_settings import UserSettings
 from app.repositories.post_repository import PostRepository
 from app.schemas.errors import AppError, ErrorCode
 from app.utils.security import decrypt_token
+from app.services.storage_service import get_storage_provider
 
 logger = structlog.get_logger()
 
@@ -49,6 +50,7 @@ class CarouselService:
         self._repo = post_repo
         self._db = db
         self._settings = get_settings()
+        self._storage = get_storage_provider(self._settings)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -135,11 +137,13 @@ class CarouselService:
         if not asset or not asset.pdf_url:
             raise ValueError("CarouselAsset not found or PDF not rendered")
 
-        # Read PDF bytes
-        pdf_path = Path(asset.pdf_url.replace("file://", ""))
-        if not pdf_path.exists():
-            raise FileNotFoundError(f"PDF not found at {pdf_path}")
-        pdf_bytes = pdf_path.read_bytes()
+        # Read PDF bytes from StorageProvider
+        filename = f"{asset.post_id}.pdf"
+        try:
+            pdf_bytes = self._storage.get_content(filename)
+        except Exception as e:
+            logger.error("carousel_pdf_read_failed", asset_id=str(asset_id), error=str(e))
+            raise FileNotFoundError(f"PDF content could not be retrieved: {str(e)}")
 
         # Load user to get write-flow token (with transparent refresh)
         user_result = await self._db.execute(select(User).where(User.id == user_id))
@@ -354,12 +358,10 @@ class CarouselService:
             return None
 
     async def _store_pdf(self, pdf_bytes: bytes | None, post_id: UUID) -> str | None:
-        """Store PDF locally (dev). In prod, upload to GCS and return signed URL."""
+        """Store PDF using the unified StorageProvider."""
         if not pdf_bytes:
             return None
         filename = f"{post_id}.pdf"
-        dest = _PDF_STORE / filename
-        dest.write_bytes(pdf_bytes)
-        pdf_url = f"file://{dest}"
-        logger.info("carousel_pdf_stored", path=str(dest))
+        pdf_url = self._storage.store(pdf_bytes, filename)
+        logger.info("carousel_pdf_stored", filename=filename, url=pdf_url)
         return pdf_url

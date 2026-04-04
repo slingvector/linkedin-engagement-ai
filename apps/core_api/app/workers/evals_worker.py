@@ -48,8 +48,31 @@ async def seed_evals_loop():
         try:
             await asyncio.sleep(20) # Fast polling for UI data population
             async with AsyncSessionLocal() as session:
-                result = await session.execute(select(User).limit(1))
-                user = result.scalar_one_or_none()
+                # 1. Automate Comment Strategy Generation for newly ingested posts
+                from app.repositories.creator_repository import CreatorRepository
+                from app.repositories.comment_repository import CommentDraftRepository
+                from app.services.creator_service import CreatorService
+                from app.models.creator import IngestedPost
+                from app.schemas.creator import CommentGenerateRequest
+
+                service = CreatorService(CreatorRepository(session), CommentDraftRepository(session))
+                unprocessed = await session.execute(
+                    select(IngestedPost).where(IngestedPost.is_processed == 0).limit(5)
+                )
+                for post in unprocessed.scalars().all():
+                    # Find the user for this post (admin for this demo)
+                    res = await session.execute(select(User).limit(1))
+                    user = res.scalar_one_or_none()
+                    if user:
+                        try:
+                            await service.generate_comments(user.id, CommentGenerateRequest(ingested_post_id=post.id))
+                            logger.info(f"AI: Generated strategies for post {post.id}")
+                        except Exception as e:
+                            logger.error(f"AI: Failed to generate for post {post.id}: {e}")
+
+                # 2. Keep the Shadow Action & Telemetry simulation (optional, but keeps logs active)
+                res = await session.execute(select(User).limit(1))
+                user = res.scalar_one_or_none()
                 
                 if user:
                     mock_act = random.choice(MOCK_INPUTS)

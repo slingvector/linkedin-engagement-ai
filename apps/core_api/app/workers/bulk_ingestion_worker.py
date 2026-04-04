@@ -148,8 +148,8 @@ def run_bulk_ingestion():
     
     # Since the library dynamically reads LINKEDIN_LI_AT, LINKEDIN_EMAIL, and LINKEDIN_PASSWORD
     # directly from the environment, we map our namespaced read account variables into os.environ
-    if settings.linkedin_read_li_at_cookie:
-        os.environ["LINKEDIN_LI_AT"] = settings.linkedin_read_li_at_cookie
+    if settings.linkedin_read_li_at:
+        os.environ["LINKEDIN_LI_AT"] = settings.linkedin_read_li_at
     if settings.linkedin_read_email:
         os.environ["LINKEDIN_EMAIL"] = settings.linkedin_read_email
     if settings.linkedin_read_password:

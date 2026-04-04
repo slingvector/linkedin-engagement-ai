@@ -12,6 +12,7 @@ import structlog
 
 from app.config import get_settings, get_yaml_config
 from app.middleware.error_handler import register_error_handlers
+from app.middleware.rate_limit import RateLimitMiddleware
 from app.models import oauth_state as _oauth_state_model  # noqa: F401 — ensure table is registered
 from app.controllers import auth_controller, health_controller, post_controller, creator_controller, idea_controller, analytics_controller, career_controller, sales_controller, talent_controller, enterprise_controller, llmops_controller, comment_controller
 from app.controllers import v2_analytics_controller
@@ -97,10 +98,13 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # --- Error Handlers ---
+    # Register error handlers
     register_error_handlers(app)
-
-    # --- Routes ---
+ 
+    # Add Rate Limiting Middleware
+    app.add_middleware(RateLimitMiddleware)
+ 
+    # Include controllers ---
     api_prefix = app_config.get("api_prefix", "/api/v1")
     app.include_router(health_controller.router)
     app.include_router(auth_controller.router, prefix=api_prefix)

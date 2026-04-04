@@ -50,8 +50,8 @@ class Post(Base, UUIDMixin, TimestampMixin):
     tone = Column(String(100), nullable=True)
 
     # Scheduling and lifecycle metadata
-    scheduled_at = Column(DateTime, nullable=True, comment="When this should be auto-published")
-    published_at = Column(DateTime, nullable=True, comment="When this was published or simulated published")
+    scheduled_at = Column(DateTime(timezone=True), nullable=True, comment="When this should be auto-published")
+    published_at = Column(DateTime(timezone=True), nullable=True, comment="When this was published or simulated published")
 
     # AI observability metadata
     generation_metadata = Column(
@@ -88,7 +88,7 @@ class Post(Base, UUIDMixin, TimestampMixin):
         comment="Actual post-publish engagement rate * 1000 (stored as integer for indexing)",
     )
     score_updated_at = Column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=True,
         comment="When virality_score was last calculated or recalibrated",
     )

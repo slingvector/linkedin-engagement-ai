@@ -55,12 +55,12 @@ class Settings(BaseSettings):
     )
 
     # --- Read Account (used by linkedin-read-flow / ingestion workers) ---
-    linkedin_read_li_at_cookie: str = Field(default="")
+    linkedin_read_li_at: str = Field(default="")
     linkedin_read_email: str = Field(default="")
     linkedin_read_password: str = Field(default="")
 
     # --- Write Account (used by publish/reply workers) ---
-    linkedin_write_li_at_cookie: str = Field(default="")
+    linkedin_write_li_at: str = Field(default="")
     linkedin_write_email: str = Field(default="")
     linkedin_write_password: str = Field(default="")
 
@@ -85,6 +85,9 @@ class Settings(BaseSettings):
 
     # --- Carousel Renderer ---
     carousel_renderer_url: str = Field(default="http://carousel_renderer:8002")
+
+    # --- GCS Storage ---
+    gcs_bucket_name: str = Field(default="")
 
     # --- CORS ---
     # Comma-separated list of allowed origins.

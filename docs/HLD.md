@@ -448,7 +448,7 @@ Browser         Core API              AI Engine         Carousel Renderer    Lin
    │                │                     │      Jinja2 → HTML → WeasyPrint    │
    │                │◄── { pdf_base64 } ──────────────────────────────────────  │
    │                │                     │                    │                │
-   │          store PDF at /tmp/carousel_pdfs/{post_id}.pdf                    │
+   │          store PDF via StorageProvider (Local / GCS)                          │
    │          INSERT carousel_assets row (status=rendered)                     │
    │                │                     │                    │                │
    │◄── 201 { asset } ─────────────────────────────────────────────────────────│
@@ -848,6 +848,10 @@ IMAGE_TAG=v1.2.7 docker compose -f docker-compose.prod.yml up -d
 - Alembic migrations add friction during early product development
 
 **Trade-off:** Schema changes require either manual DDL on a live DB or a full data wipe. For production data protection, this approach requires care. An Alembic migration system should be introduced before multi-user growth.
+
+- PDF files are stored via the unified `StorageProvider`. In dev, they land at `/tmp/carousel_pdfs/`; in production, they are uploaded to GCS (configured via `GCS_BUCKET_NAME`).
+- Logic resides in `apps/core_api/app/services/storage_service.py`.
+- Brand kit (colors, fonts, logo) is configurable per-user in User Settings.
 
 **Current workaround:** Document manually-required DDL changes (e.g., the `shadow_action_logs` FK CASCADE) in the Operator Guide's troubleshooting section.
 

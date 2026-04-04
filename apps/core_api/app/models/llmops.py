@@ -23,7 +23,7 @@ class ShadowActionLog(Base):
     # Simple edit distance metric (e.g., Levenshtein percentage) 1.0 = no changes, 0.0 = completely rewritten
     edit_similarity_score: Mapped[float] = mapped_column(Float, nullable=True)
     
-    logged_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    logged_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 class LLMEvaluation(Base):
     """
@@ -41,4 +41,4 @@ class LLMEvaluation(Base):
     
     judge_rationale: Mapped[str] = mapped_column(Text)
     
-    evaluated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    evaluated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

@@ -21,7 +21,7 @@ class PostMetrics(Base):
     comments = Column(Integer, default=0, nullable=False)
     shares = Column(Integer, default=0, nullable=False)
     
-    recorded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    recorded_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class Engager(Base):
@@ -37,7 +37,7 @@ class Engager(Base):
     headline = Column(String, nullable=False)
     interaction_type = Column(String, nullable=False) # 'like', 'comment'
     
-    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     
     classification = relationship("EngagerClassification", back_populates="engager", uselist=False, cascade="all, delete-orphan")
 
@@ -53,6 +53,6 @@ class EngagerClassification(Base):
     
     persona = Column(String, nullable=False) # 'Founder / C-Suite', 'Engineering & Tech', etc.
     
-    classified_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    classified_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     engager = relationship("Engager", back_populates="classification")
