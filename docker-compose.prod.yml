@@ -28,7 +28,7 @@ services:
       - redis_prod_data:/data
 
   ai_engine:
-    image: ghcr.io/slingvector/linkedin-engagement-ai-ai_engine:v1.2.1
+    image: ghcr.io/slingvector/linkedin-engagement-ai-ai_engine:v1.2.2
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
@@ -42,7 +42,7 @@ services:
       - OLLAMA_API_BASE=http://host.docker.internal:11434
       
   core_api: # NO PORTS EXPOSED. ISOLATED.
-    image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:v1.2.1
+    image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:v1.2.2
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
@@ -59,7 +59,7 @@ services:
       - ai_engine
 
   ingestion_worker:
-    image: ghcr.io/slingvector/linkedin-engagement-ai-ingestion_worker:v1.2.1
+    image: ghcr.io/slingvector/linkedin-engagement-ai-ingestion_worker:v1.2.2
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
@@ -72,7 +72,7 @@ services:
       - postgres
 
   web:
-    image: ghcr.io/slingvector/linkedin-engagement-ai-web:v1.2.1
+    image: ghcr.io/slingvector/linkedin-engagement-ai-web:v1.2.2
     platform: linux/amd64
     restart: unless-stopped
     logging: *default-logging
