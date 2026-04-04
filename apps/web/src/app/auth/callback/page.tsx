@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -8,7 +8,7 @@ import { useAuthStore } from '@/lib/store';
 
 type Status = 'loading' | 'success' | 'error';
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>('loading');
@@ -95,5 +95,17 @@ export default function AuthCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto" />
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }
