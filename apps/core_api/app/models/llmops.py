@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from sqlalchemy import String, DateTime, Text, Integer, Float, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
@@ -23,7 +23,7 @@ class ShadowActionLog(Base):
     # Simple edit distance metric (e.g., Levenshtein percentage) 1.0 = no changes, 0.0 = completely rewritten
     edit_similarity_score: Mapped[float] = mapped_column(Float, nullable=True)
     
-    logged_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    logged_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class LLMEvaluation(Base):
     """
@@ -41,4 +41,4 @@ class LLMEvaluation(Base):
     
     judge_rationale: Mapped[str] = mapped_column(Text)
     
-    evaluated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    evaluated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

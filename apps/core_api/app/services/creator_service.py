@@ -82,8 +82,8 @@ class CreatorService:
     async def ingest_post_direct(self, user_id: UUID, post_url: str) -> dict:
         """Manual trigger to ingest a post URL directly and extract basic info."""
         import re
-        from datetime import datetime
-        from app.models.creator import TrackedCreator, IngestedPost
+        from datetime import datetime, timezone
+from app.models.creator import TrackedCreator, IngestedPost
 
         # Ex: https://www.linkedin.com/posts/gaganbiyani_a-junior-employee-really-screwed-...
         creator_slug = "unknown"
@@ -143,7 +143,7 @@ class CreatorService:
             linkedin_post_id=f"urn:li:activity:direct_{int(time.time())}",
             post_url=post_url,
             content=content_text,
-            posted_at=datetime.utcnow(),
+            posted_at=datetime.now(timezone.utc),
             likes=100,
             comments=10,
             ingestion_source="direct"

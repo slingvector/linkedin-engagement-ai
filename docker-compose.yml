@@ -83,5 +83,23 @@ services:
     depends_on:
       - core_api
 
+  # ── Ingestion Worker ──────────────────────────────────────────────────────
+  # Scrapes LinkedIn feed via linkedin-read-flow and stores posts in Postgres.
+  # Runs as a separate process sharing the core_api image.
+  # Start with: docker compose --profile ingestion up
+  ingestion_worker:
+    build:
+      context: ./apps/core_api
+    container_name: linkedin_dev_ingestion_worker
+    profiles: ["ingestion"]
+    command: ["python", "-m", "app.workers.bulk_ingestion_worker"]
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme_local_only}@postgres:5432/${POSTGRES_DB:-linkedin_saas}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_dev_data:

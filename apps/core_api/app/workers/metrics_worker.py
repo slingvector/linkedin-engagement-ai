@@ -55,7 +55,7 @@ async def poll_metrics_and_classifications():
                                 likes=random.randint(1, 5),
                                 comments=random.randint(0, 2),
                                 shares=0,
-                                recorded_at=datetime.utcnow() - timedelta(days=random.randint(0, 5)) 
+                                recorded_at=datetime.now(timezone.utc) - timedelta(days=random.randint(0, 5)) 
                              )
                             db.add(metric_entry)
                         else:

@@ -33,6 +33,7 @@ from app.models.post import Post
 from app.models.user import User
 from app.models.user_settings import UserSettings
 from app.repositories.post_repository import PostRepository
+from app.schemas.errors import AppError, ErrorCode
 from app.utils.security import decrypt_token
 
 logger = structlog.get_logger()
@@ -140,15 +141,44 @@ class CarouselService:
             raise FileNotFoundError(f"PDF not found at {pdf_path}")
         pdf_bytes = pdf_path.read_bytes()
 
-        # Load user to get write-flow token + person ID
+        # Load user to get write-flow token (with transparent refresh)
         user_result = await self._db.execute(select(User).where(User.id == user_id))
         user = user_result.scalar_one_or_none()
-        if not user or not user.write_access_token_encrypted:
-            raise ValueError(
-                "write_flow_not_connected"
+        if not user:
+            raise AppError(
+                code=ErrorCode.USER_NOT_FOUND,
+                detail=f"User {user_id} not found.",
+                status_code=404,
+            )
+        if not user.write_access_token_encrypted:
+            raise AppError(
+                code=ErrorCode.WRITE_FLOW_NOT_CONNECTED,
+                detail="LinkedIn write account not connected. Please authorize in Settings.",
+                status_code=400,
             )
 
-        access_token = decrypt_token(user.write_access_token_encrypted)
+        # Attempt to get a valid (possibly refreshed) write-flow token
+        try:
+            from app.services.auth_service import AuthService
+            from app.repositories.user_repository import UserRepository
+            user_repo = UserRepository(self._db)
+            auth_service = AuthService(user_repository=user_repo)
+
+            # Use write-flow token directly since it has separate expiry tracking
+            # For write tokens we fall back to direct decrypt (refresh_token for write-flow
+            # is managed by the v2/auth flow separately)
+            if auth_service.is_token_expiring_soon(user) and user.refresh_token_encrypted:
+                access_token = await auth_service.refresh_linkedin_token(user)
+            else:
+                access_token = decrypt_token(user.write_access_token_encrypted)
+        except AppError:
+            raise
+        except Exception as e:
+            raise AppError(
+                code=ErrorCode.WRITE_TOKEN_DECRYPT_FAILED,
+                detail="Could not decrypt LinkedIn write token. Please re-connect your account.",
+                status_code=400,
+            )
         person_id = user.linkedin_person_id or user.linkedin_id  # fall back to slug
         person_urn = f"urn:li:person:{person_id}"
 

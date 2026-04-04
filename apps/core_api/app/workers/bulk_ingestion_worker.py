@@ -116,7 +116,7 @@ class PostgresStorageAdapter(StorageProtocol):
                     linkedin_post_id=post.get("post_urn", ""),
                     post_url=post.get("url", ""),
                     content=content_val[:800],
-                    posted_at=datetime.utcnow(),
+                    posted_at=datetime.now(timezone.utc),
                     likes=post.get("likes", 0),
                     comments=post.get("comments", 0),
                     ingestion_source="bulk_read_flow"

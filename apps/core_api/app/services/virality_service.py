@@ -71,7 +71,7 @@ class ViralityService:
         post.virality_score = score_data.get("total_score")
         post.score_breakdown = score_data.get("breakdown")
         post.hook_alternatives = score_data.get("hook_alternatives", [])
-        post.score_updated_at = datetime.utcnow()  # naive UTC — matches TIMESTAMP WITHOUT TIME ZONE column
+        post.score_updated_at = datetime.now(timezone.utc)  # naive UTC — matches TIMESTAMP WITHOUT TIME ZONE column
 
         updated = await self._repo.update(post)
 
