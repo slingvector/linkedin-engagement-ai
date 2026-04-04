@@ -164,6 +164,10 @@ def run_bulk_ingestion():
             send_alert("⚠️ LinkedIn CAPTCHA/2FA triggered.\nLog in manually, solve the challenge, then update li_at in .env and restart.")
         else:
             send_alert(f"❌ LinkedIn auth failed at startup.\nCheck LINKEDIN_READ_LI_AT / EMAIL / PASSWORD in .env.\n\n{msg}")
+            
+        logger.info("bulk_ingestion_paused_due_to_auth")
+        # Prevent tight restart loops that could softly ban the account
+        time.sleep(3600)
         return
 
     # Trial Run: Fetch own feed periodically
