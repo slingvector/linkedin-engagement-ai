@@ -1,116 +1,183 @@
-# LinkedIn-as-a-Service (LinkedIn Engagement AI) 🚀
+# LinkedIn-as-a-Service
 
-LinkedIn-as-a-Service is an open-source, fully automated, ultra-scale LinkedIn growth AI platform. The system operates as a tripartite microservice mesh designed to securely scrape engagement data, ideate trending content using Google DeepMind's Gemini 2.5 Flash models, simulate "organic" human-level comments, and automatically schedule ghostwritten posts—all completely natively, without triggering LinkedIn's anti-bot infrastructure.
+> AI-powered LinkedIn growth platform — content generation, comment copilot, carousel studio, and virality scoring.
 
-## 🏗️ High-Level Design (HLD) Architecture
-
-The application is segregated into three primary isolated components:
-
-```mermaid
-flowchart TD
-    subgraph ClientTier [Client Tier]
-        UI["Next.js + Tailwind React Frontend"]
-    end
-
-    subgraph StateTier [State and Proxy Tier]
-        CoreAPI["Core API (FastAPI)"]
-        DB[("PostgreSQL")]
-        Worker["Celery + Redis Scheduler"]
-        Playwright["Playwright Headless Scraper"]
-    end
-
-    subgraph IntelligenceTier [AI Proxy Mesh]
-        AIEngine["AI Engine (FastAPI)"]
-        Google["Google Developer API (Gemini 2.5)"]
-        Ollama["Local Ollama Inference"]
-    end
-
-    UI -- "OAuth JWT / NextAuth" --> CoreAPI
-    CoreAPI -- "FastAPI SQLAlchemy" --> DB
-    CoreAPI -- "Triggers Jobs" --> Worker
-    Worker -- "Secure Proxies" --> Playwright
-    Playwright -- "Headless Browser" --> LinkedIn(("LinkedIn Servers"))
-    CoreAPI -- "X-AI-API-Key Webhook JSON" --> AIEngine
-    AIEngine -- "Pydantic SDK Output" --> Google
-    AIEngine -- "Safe Fallback" --> Ollama
-```
+**Current version:** v1.2.7 | **Branch:** `fresh-start` | **Stack:** FastAPI · Next.js · PostgreSQL · Gemini · Docker
 
 ---
 
-## 🧩 Core Ecosystem Components
+## Architecture
 
-### 1. `apps/web` (The Next.js Client)
-A stunning, responsive frontend built with React 18, Next.js 14, TailwindCSS, Radix UI, and React Query.
-* **Role:** The control center for the user.
-* **Features:** Idea Generation dashboard, Post Creator Canvas (with Contrarian/Story framework integrations), Scheduled Post timelines, and Comment Generation Radar.
-* **Resiliency:** Handles Pydantic validation trace arrays gracefully and uses optimistic UI updates to simulate rapid load times against AI bottlenecks.
+```
+Browser (Next.js :3000)
+      │  JWT auth
+      ▼
+Core API (:8000)  ──── AI Engine (:8001)        ← internal, X-AI-API-Key gated
+      │                     │
+      │              Vertex AI / Gemini
+      │              Ollama (local fallback)
+      │
+      ├── PostgreSQL (primary store)
+      ├── Carousel Renderer (:8002)              ← WeasyPrint PDF generation
+      └── linkedin-read-flow                     ← read-only ingestion (background worker)
+```
 
-### 2. `apps/core_api` (The Stateful Brain)
-A robust FastAPI backend using SQLAlchemy 2.0 (Async) mapped directly into a PostgreSQL database.
-* **Role:** Secure proxy handling user authentications (LinkedIn OAuth), saving generated posts/ideas into the database, and issuing commands to background scrapers.
-* **Features:** Strict UUID schema enforcement, background background worker delegation via Celery, and API security token validation.
+### Services
 
-### 3. `apps/ai_engine` (The Intelligence Layer)
-A stateless, blazingly fast secondary FastAPI microservice connected to Google's DeepMind Gemini models and local Ollama deployments.
-* **Role:** Sits behind a VPC firewall (accessed via `X-AI-API-Key`) receiving raw text prompts from the Core API and outputting perfectly formatted, string-escaped structured JSON files.
-* **Features:**
-  * **Native Pydantic Structure:** Enforces `PostGenerationResponse` via the Google SDK to strictly guarantee un-escaped LLM tokenizer crashes never happen natively.
-  * **Local AI Fallback:** If the external LLM models (e.g., `gemini-2.5-flash`) suffer a catastrophic outage, the node silently fails over to `llama3.2:latest` running locally in Docker/Ollama to guarantee uptime.
+| Service | Port | Role |
+|---------|------|------|
+| `apps/web` | 3000 | Next.js frontend — post studio, radar, calendar, carousel |
+| `apps/core_api` | 8000 | FastAPI backend — auth, CRUD, background workers, webhooks |
+| `apps/ai_engine` | 8001 | LLM microservice — structured output via Gemini / Ollama |
+| `apps/carousel_renderer` | 8002 | PDF generation via WeasyPrint |
 
 ---
 
-## 🛠️ Local Development Boot Sequence
+## Features
 
-You can launch all 3 primary environments simultaneously in your terminal via our background daemon bootscript.
+### V1 — Content & Comment Engine
+- **Post Generation** — AI ghostwriter with framework strategies (contrarian, story, listicle, etc.)
+- **Creator Radar** — track creators, ingest their posts automatically
+- **Comment Copilot** — 3 AI strategies per post: insightful / contrarian / supportive
+- **LLMOps Flywheel** — edit similarity tracking → future DPO fine-tuning
 
-### 1. Booting The Full Stack
-Instead of juggling 3 terminals, you can daemonize the entire stack to seamlessly run silently.
+### V2 — Growth Intelligence
+- **Carousel Studio** — AI-generated swipeable PDF posts, published via LinkedIn API
+- **Virality Scoring** — pre-post AI score 1–100 with hook alternatives + breakdown
+- **Posting Time Heatmap** — smart time recommendations from real engagement data
+- **Smart Fill Calendar** — auto-generate a full week of posts from content pillars
+
+---
+
+## Ingestion
+
+Feed data is pulled via **`linkedin-read-flow`** (read-only dedicated account). The `bulk_ingestion_worker` runs as a background thread on app start, authenticating via:
+
+1. `LINKEDIN_READ_LI_AT` cookie (preferred)
+2. `LINKEDIN_READ_EMAIL` + `LINKEDIN_READ_PASSWORD` (auto-fallback)
+3. Telegram alert sent on CAPTCHA/auth failure for manual intervention
+
+---
+
+## Local Development
+
+### Prerequisites
+- Python 3.12+
+- Node.js 20+
+- PostgreSQL running locally
+- Ollama (optional, for local LLM fallback)
+
+### Boot
+
 ```bash
-./tmp/start_all.sh # Or run them individually via the lines below
-```
-
-### 2. Individual Boot Commands
-
-**Start the Next.js Frontend:**
-```bash
-cd apps/web
-npm install
-npm run dev
-# App runs on http://localhost:3000
-```
-
-**Start the Core API:**
-```bash
+# Core API
 cd apps/core_api
-source .venv/bin/activate
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-# Swagger Docs available at http://localhost:8000/docs
-```
 
-**Start the AI Engine:**
-```bash
+# AI Engine
 cd apps/ai_engine
 source .venv/bin/activate
 uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
-# Swagger Docs available at http://localhost:8001/docs
+
+# Carousel Renderer
+cd apps/carousel_renderer
+source .venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+
+# Frontend
+cd apps/web
+npm install && npm run dev
 ```
 
----
+### Environment (`apps/core_api/.env`)
 
-## 🔐 Environment Setup
-
-Each respective app directory contains a `.env.example` file. Make sure to duplicate these into `.env` files and inject your keys.
-
-**Crucial Variables (`apps/ai_engine/.env`):**
 ```env
-GEMINI_API_KEY="AIzaSyBhO...your_key_here"
-AI_ENGINE_PORT=8001
-AI_ENGINE_API_KEY="change_this_internal_microservice_key" # Syncs with apps/core_api/.env
+DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/linkedin_saas
+FERNET_KEY=your_fernet_key
+
+# LinkedIn read-only account (ingestion)
+LINKEDIN_READ_LI_AT=your_li_at_cookie
+LINKEDIN_READ_EMAIL=readonly@email.com
+LINKEDIN_READ_PASSWORD=your_password
+
+# Telegram alerts (optional)
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+```
+
+```env
+# apps/ai_engine/.env
+GEMINI_API_KEY=your_key
+AI_ENGINE_API_KEY=your_internal_key
+VERTEX_PROJECT_ID=your_gcp_project
 ```
 
 ---
 
-## 📈 Release Milestones
-* **v1.0.0 (Current):** Stable migration spanning full Google Developer GenAI API arrays, Next.js frontend schema safeties, and full Post/Idea execution stability. 
+## Production (Docker)
 
-*Designed recursively with Agentic coding assistance.*
+```bash
+# Build and start all services
+docker compose -f docker-compose.prod.yml up -d --build
+
+# First-time DB init
+docker compose -f docker-compose.prod.yml exec core_api python -m scripts.init_master_db
+
+# Check health
+docker compose -f docker-compose.prod.yml ps -a
+curl http://localhost:8000/health
+```
+
+> See `docs/local_prod_operations.md` for full operator runbook.
+
+---
+
+## Testing
+
+```bash
+cd apps/core_api
+.venv/bin/python -m pytest tests/ -v
+# 129 tests — auth, posts, creators, comment feedback, full V2 feature coverage
+```
+
+---
+
+## Documentation
+
+| Doc | Purpose |
+|-----|---------|
+| [CHANGELOG.md](docs/CHANGELOG.md) | Version history & sprint log |
+| [DEVELOPER_STANDARDS.md](docs/DEVELOPER_STANDARDS.md) | Backend & frontend engineering rules |
+| [master_project_blueprint.md](docs/master_project_blueprint.md) | 7-phase product roadmap |
+| [v2_developer_reference.md](docs/v2_developer_reference.md) | V2 authoritative technical reference |
+| [v2_architecture.md](docs/v2_architecture.md) | V2 design spec |
+| [deployment_strategy.md](docs/deployment_strategy.md) | Cloud & infra deployment |
+| [local_prod_operations.md](docs/local_prod_operations.md) | Mac Mini operator runbook |
+| [admin_operator_guide.md](docs/admin_operator_guide.md) | Admin guide |
+| [end_user_guide.md](docs/end_user_guide.md) | End user guide |
+| [docs/rca/README.md](docs/rca/README.md) | RCA index — all production incidents |
+
+---
+
+## Engineering Rules (Non-Negotiable)
+
+| Rule | Detail |
+|------|--------|
+| No hardcoding | All config via `.env` or `config.yaml` |
+| Strict JSON mode | All LLM calls use structured output |
+| LLM timeout | All AI calls wrapped in `asyncio.wait_for(timeout=30)` |
+| Human-in-the-loop | Every LinkedIn action requires user approval |
+| No aggressive scraping | Only `linkedin-read-flow` for ingestion |
+| asyncpg timeout | Always `connect_args={"timeout": 10}` |
+
+---
+
+## Archive & Safety
+
+| Branch | Purpose |
+|--------|---------|
+| `fresh-start` | Active development (Appium/Playwright removed) |
+| `archive/main-2026-04-04` | Frozen snapshot of main before cleanup |
+| `archive/feature-ready-2026-04-04` | Frozen snapshot of feature-ready before cleanup |

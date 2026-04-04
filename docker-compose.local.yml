@@ -1,94 +1,90 @@
 # docker-compose.local.yml
-# Use this for IMMEDIATE local testing from source code (bypasses GHCR build)
+# PRE-PROD READINESS TESTING — uses GHCR tagged images (same as production).
+# Usage: IMAGE_TAG=v1.2.7 docker compose -f docker-compose.local.yml up
+# Validates that published images boot correctly before promoting to prod.
+
 version: "3.9"
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: linkedin_local_postgres
+    container_name: linkedin_staging_postgres
+    env_file: .env
     environment:
-      POSTGRES_DB: linkedin_saas
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: changeme_local_only
+      POSTGRES_DB: ${POSTGRES_DB:-linkedin_saas}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_local_only}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres_prod_data:/var/lib/postgresql/data
+      - postgres_staging_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: linkedin_local_redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_prod_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    logging: *default-logging
 
   ai_engine:
-    build:
-      context: ./apps/ai_engine
+    image: ghcr.io/slingvector/linkedin-engagement-ai-ai_engine:${IMAGE_TAG:-latest}
+    container_name: linkedin_staging_ai_engine
     platform: linux/amd64
     env_file: .env
     environment:
+      - AI_ENGINE_API_KEY=${AI_ENGINE_API_KEY:-change_this_internal_microservice_key}
       - LLM_PROVIDER=vertexai
-      - GCP_PROJECT_ID=mcr-relay-1772228380
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-mcr-relay-1772228380}
+      - GCP_LOCATION=${GCP_LOCATION:-us-central1}
+      - VERTEX_MODEL=${VERTEX_MODEL:-gemini-2.0-flash-001}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/modernos-edge-agent-key.json
     volumes:
       - ./modernos-edge-agent-key.json:/app/modernos-edge-agent-key.json:ro
-    depends_on:
-      - redis
+    ports:
+      - "8001:8001"
+    logging: *default-logging
 
   carousel_renderer:
-    build:
-      context: ./apps/carousel_renderer
+    image: ghcr.io/slingvector/linkedin-engagement-ai-carousel_renderer:${IMAGE_TAG:-latest}
+    container_name: linkedin_staging_carousel_renderer
+    platform: linux/amd64
     ports:
       - "8002:8002"
-    depends_on:
-      - redis
+    logging: *default-logging
 
   core_api:
-    build:
-      context: ./apps/core_api
+    image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:${IMAGE_TAG:-latest}
+    container_name: linkedin_staging_core_api
+    platform: linux/amd64
     env_file: .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:changeme_local_only@postgres:5432/linkedin_saas
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme_local_only}@postgres:5432/${POSTGRES_DB:-linkedin_saas}
       - AI_ENGINE_URL=http://ai_engine:8001
-      - RENDERER_URL=http://carousel_renderer:8002
+      - CAROUSEL_RENDERER_URL=http://carousel_renderer:8002
+      - FRONTEND_URL=http://localhost:3000
     ports:
       - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+      ai_engine:
+        condition: service_started
+      carousel_renderer:
+        condition: service_started
     volumes:
       - ./tmp/carousel_pdfs:/tmp/carousel_pdfs
-
-  ingestion_worker:
-    build:
-      context: ./apps/core_api
-    command: ["python", "-m", "app.workers.ingestion_worker"]
-    env_file: .env
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:changeme_local_only@postgres:5432/linkedin_saas
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - postgres
-      - redis
+    logging: *default-logging
 
   web:
-    build:
-      context: ./apps/web
+    image: ghcr.io/slingvector/linkedin-engagement-ai-web:${IMAGE_TAG:-latest}
+    container_name: linkedin_staging_web
+    platform: linux/amd64
+    env_file: .env
     ports:
       - "3000:3000"
     environment:
@@ -97,7 +93,7 @@ services:
       - CORE_API_INTERNAL_URL=http://core_api:8000
     depends_on:
       - core_api
+    logging: *default-logging
 
 volumes:
-  postgres_prod_data:
-  redis_prod_data:
+  postgres_staging_data:

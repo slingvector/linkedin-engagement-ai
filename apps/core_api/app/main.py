@@ -12,6 +12,7 @@ import structlog
 
 from app.config import get_settings, get_yaml_config
 from app.middleware.error_handler import register_error_handlers
+from app.models import oauth_state as _oauth_state_model  # noqa: F401 — ensure table is registered
 from app.controllers import auth_controller, health_controller, post_controller, creator_controller, idea_controller, analytics_controller, career_controller, sales_controller, talent_controller, enterprise_controller, llmops_controller, comment_controller
 from app.controllers import v2_analytics_controller
 from app.controllers import v2_calendar_controller
@@ -90,7 +91,7 @@ def create_app() -> FastAPI:
     # --- CORS ---
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],  # Next.js dev server
+        allow_origins=settings.cors_allowed_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

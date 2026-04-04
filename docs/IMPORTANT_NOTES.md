@@ -1,22 +1,22 @@
-We will follow standard practices for software development
-For backend I can say
-Solid principles,  Separation of Concerns ,
-Fault tolerance,
-Graceful error handling,
-Scalable(may be) but portability is must.
-Deterministic...it should not be runs on my machine , but why its not running on my colleague machine,
-Modularity and extensibility,
-Testability,
-High availability, observability stack etc etc...
-In a similar way for frontend as well...
+# Important Engineering Notes
 
-And most important well documented.
+## Core Principles
 
-See our development standards:
-- [Backend Standards](BACKEND_STANDARDS.md)
-- [Frontend Standards](FRONTEND_STANDARDS.md)
+All development follows **SOLID principles** with strict separation of concerns:
 
-### 🏗️ Strict Engineering Constraints
-- **NO HARDCODING**: Under no circumstances should business logic parameters (multipliers, API URLs, thresholds, logic constants) be hardcoded inside `.py` files. Use YAML, `.env`, or a configuration service.
-- **Environment Parity**: Logic must behave identically across developer machines and production containers.
-- **Traceability**: All major decisions (UVI weights, retry counts) must be logged and configurable without code changes.
+- **Single Responsibility** — one reason to change per class/module
+- **Open/Closed** — extend via new services, never modify existing ones
+- **Dependency Inversion** — inject via FastAPI `Depends`, never instantiate inside handlers
+
+**Critical constraints:**
+
+| Rule | Detail |
+|------|--------|
+| **NO HARDCODING** | Business logic params, API URLs, thresholds → YAML / `.env` only |
+| **Environment Parity** | Runs identically on dev machine and Docker container |
+| **Traceability** | All decisions (weights, retry counts, timeouts) configurable without code changes |
+| **Portability** | "Runs on my machine" is not acceptable — Docker proves it |
+
+## Standards Reference
+
+See [DEVELOPER_STANDARDS.md](DEVELOPER_STANDARDS.md) for the complete backend + frontend rulebook.

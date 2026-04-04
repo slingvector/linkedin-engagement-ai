@@ -9,7 +9,6 @@ Flow:
   2. GET  /api/v2/auth/linkedin/callback → exchange code → store write token on user
 """
 
-import secrets
 from urllib.parse import urlencode
 
 import httpx
@@ -20,14 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.dependencies import get_current_user, get_db
 from app.models.user import User
+from app.utils.oauth_state import consume_oauth_state, create_oauth_state
 from app.utils.security import encrypt_token
 
 logger = structlog.get_logger()
 
 router = APIRouter(prefix="/auth", tags=["v2-auth"])
-
-# In-memory CSRF store (use Redis in production)
-_write_oauth_states: dict[str, str] = {}  # state → user_id
 
 
 def _get_redirect_uri(request: Request, settings) -> str:
@@ -38,10 +35,7 @@ def _get_redirect_uri(request: Request, settings) -> str:
     """
     host = request.headers.get("x-forwarded-host") or request.headers.get("host") or ""
     if "trycloudflare.com" in host:
-        # Tunnel detected: use the tunnel's HTTPS origin
         return f"https://{host}/api/v2/auth/linkedin/callback"
-
-    # Default to the configured URI (usually localhost in dev)
     return settings.linkedin_write_redirect_uri
 
 
@@ -49,6 +43,7 @@ def _get_redirect_uri(request: Request, settings) -> str:
 async def write_flow_login(
     request: Request,
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Generates the LinkedIn OAuth authorization URL for write-flow consent.
@@ -56,23 +51,18 @@ async def write_flow_login(
     Returns a URL the frontend should redirect to.
     """
     settings = get_settings()
-    state = secrets.token_urlsafe(32)
 
-    # Store state → user_id mapping for CSRF validation
-    _write_oauth_states[state] = str(current_user.id)
+    # Persist state with user_id — so callback knows who to update
+    state = await create_oauth_state(db, user_id=str(current_user.id))
 
     params = {
-        "params": {
-            "response_type": "code",
-            "client_id": settings.linkedin_write_client_id,
-            "redirect_uri": _get_redirect_uri(request, settings),
-            "scope": "w_member_social openid profile email",
-            "state": state,
-        }
+        "response_type": "code",
+        "client_id": settings.linkedin_write_client_id,
+        "redirect_uri": _get_redirect_uri(request, settings),
+        "scope": "w_member_social openid profile email",
+        "state": state,
     }
-
-    # Note: urlencode(params["params"]) is correct
-    auth_url = f"https://www.linkedin.com/oauth/v2/authorization?{urlencode(params['params'])}"
+    auth_url = f"https://www.linkedin.com/oauth/v2/authorization?{urlencode(params)}"
     logger.info("write_flow_oauth_initiated", user_id=str(current_user.id), state=state[:8])
     return {"auth_url": auth_url}
 
@@ -89,12 +79,12 @@ async def write_flow_callback(
     Encrypts and stores the token on the User record so CarouselService
     can use it for Document Upload + post creation.
     """
-    # 1. Validate CSRF state
-    user_id = _write_oauth_states.pop(state, None)
-    if not user_id:
+    # 1. Validate and consume CSRF state (Postgres-backed — restart/multi-worker safe)
+    user_id = await consume_oauth_state(db, state)
+    if user_id == "__invalid__":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired OAuth state",
+            detail="Invalid or expired OAuth state. Please start the flow again.",
         )
 
     settings = get_settings()
@@ -115,9 +105,11 @@ async def write_flow_callback(
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
             if token_resp.status_code != 200:
-                logger.error("linkedin_token_exchange_error",
-                             status=token_resp.status_code,
-                             body=token_resp.text)
+                logger.error(
+                    "linkedin_token_exchange_error",
+                    status=token_resp.status_code,
+                    body=token_resp.text,
+                )
             token_resp.raise_for_status()
             token_data = token_resp.json()
     except Exception as e:
