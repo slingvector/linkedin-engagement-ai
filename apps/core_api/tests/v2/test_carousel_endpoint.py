@@ -217,10 +217,6 @@ class TestPublishCarouselEndpoint:
                 new=AsyncMock(return_value=asset),
             ),
             patch(
-                "app.controllers.v2_carousel_controller.decrypt_token",
-                return_value="live_access_token",
-            ),
-            patch(
                 "app.services.carousel_service.CarouselService.publish_to_linkedin",
                 new=AsyncMock(return_value="urn:li:share:9999"),
             ),
@@ -259,9 +255,15 @@ class TestPublishCarouselEndpoint:
         asset = _mock_asset(post_id)
         app = _build_test_app(user_no_token)
 
-        with patch(
-            "app.services.carousel_service.CarouselService.get_by_post",
-            new=AsyncMock(return_value=asset),
+        with (
+            patch(
+                "app.services.carousel_service.CarouselService.get_by_post",
+                new=AsyncMock(return_value=asset),
+            ),
+            patch(
+                "app.services.carousel_service.CarouselService.publish_to_linkedin",
+                new=AsyncMock(side_effect=ValueError("write_flow_not_connected")),
+            ),
         ):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 resp = await client.post(
@@ -270,7 +272,6 @@ class TestPublishCarouselEndpoint:
                 )
 
         assert resp.status_code == 400
-        assert "token" in resp.json()["detail"].lower()
 
     @pytest.mark.asyncio
     async def test_400_token_decryption_failure(self, user):
@@ -284,8 +285,8 @@ class TestPublishCarouselEndpoint:
                 new=AsyncMock(return_value=asset),
             ),
             patch(
-                "app.controllers.v2_carousel_controller.decrypt_token",
-                side_effect=Exception("Decryption failed"),
+                "app.services.carousel_service.CarouselService.publish_to_linkedin",
+                new=AsyncMock(side_effect=ValueError("Decryption failed")),
             ),
         ):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -306,10 +307,6 @@ class TestPublishCarouselEndpoint:
             patch(
                 "app.services.carousel_service.CarouselService.get_by_post",
                 new=AsyncMock(return_value=asset),
-            ),
-            patch(
-                "app.controllers.v2_carousel_controller.decrypt_token",
-                return_value="token",
             ),
             patch(
                 "app.services.carousel_service.CarouselService.publish_to_linkedin",
@@ -334,10 +331,6 @@ class TestPublishCarouselEndpoint:
             patch(
                 "app.services.carousel_service.CarouselService.get_by_post",
                 new=AsyncMock(return_value=asset),
-            ),
-            patch(
-                "app.controllers.v2_carousel_controller.decrypt_token",
-                return_value="token",
             ),
             patch(
                 "app.services.carousel_service.CarouselService.publish_to_linkedin",

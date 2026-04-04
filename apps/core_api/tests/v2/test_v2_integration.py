@@ -430,51 +430,63 @@ class TestLinkedInPublishPipeline:
 
         asset = make_carousel_asset(pdf_url=f"file://{pdf_path}")
 
-        db = make_db_session()
-        result_mock = MagicMock()
-        result_mock.scalar_one_or_none.return_value = asset
-        db.execute.return_value = result_mock
+        # Mock user with write token
+        mock_user = MagicMock()
+        mock_user.write_access_token_encrypted = "encrypted_write_token"
+        mock_user.linkedin_person_id = "123456"
+        mock_user.linkedin_id = "123456"
 
-        service = CarouselService(AsyncMock(), db)
-        service._settings = MagicMock()
+        # DB returns asset on first execute, user on second
+        db = make_db_session()
+        asset_result = MagicMock()
+        asset_result.scalar_one_or_none.return_value = asset
+        user_result = MagicMock()
+        user_result.scalar_one_or_none.return_value = mock_user
+        db.execute.side_effect = [asset_result, user_result]
 
         access_token = "live_oauth_token"
         document_urn = "urn:li:document:999888777"
         upload_url = "https://upload.linkedin.com/upload/abc123"
         li_post_urn = "urn:li:share:111222333"
 
-        with patch("app.services.carousel_service.httpx.AsyncClient") as mock_client:
-            mock_http = AsyncMock()
-            mock_client.return_value.__aenter__.return_value = mock_http
+        with patch("app.services.carousel_service.decrypt_token", return_value=access_token):
+            service = CarouselService(AsyncMock(), db)
+            service._settings = MagicMock()
 
-            # Step 1: initializeUpload
-            init_resp = MagicMock()
-            init_resp.raise_for_status = MagicMock()
-            init_resp.json.return_value = {
-                "value": {
-                    "uploadUrl": upload_url,
-                    "document": document_urn,
+            with patch("app.services.carousel_service.httpx.AsyncClient") as mock_client:
+                mock_http = AsyncMock()
+                mock_client.return_value.__aenter__.return_value = mock_http
+
+                # Step 1: initializeUpload
+                init_resp = MagicMock()
+                init_resp.status_code = 200
+                init_resp.raise_for_status = MagicMock()
+                init_resp.json.return_value = {
+                    "value": {
+                        "uploadUrl": upload_url,
+                        "document": document_urn,
+                    }
                 }
-            }
 
-            # Step 2: PUT binary
-            put_resp = MagicMock()
-            put_resp.raise_for_status = MagicMock()
+                # Step 2: PUT binary
+                put_resp = MagicMock()
+                put_resp.status_code = 201
+                put_resp.raise_for_status = MagicMock()
 
-            # Step 3: create post
-            post_resp = MagicMock()
-            post_resp.raise_for_status = MagicMock()
-            post_resp.headers = {"x-restli-id": li_post_urn}
+                # Step 3: create post
+                post_resp = MagicMock()
+                post_resp.status_code = 201
+                post_resp.raise_for_status = MagicMock()
+                post_resp.headers = {"x-restli-id": li_post_urn}
 
-            mock_http.post.side_effect = [init_resp, post_resp]
-            mock_http.put.return_value = put_resp
+                mock_http.post.side_effect = [init_resp, post_resp]
+                mock_http.put.return_value = put_resp
 
-            result = await service.publish_to_linkedin(
-                asset_id=asset.id,
-                user_id=make_uuid(),
-                access_token=access_token,
-                post_text="My carousel on AI Automation 🚀",
-            )
+                result = await service.publish_to_linkedin(
+                    asset_id=asset.id,
+                    user_id=make_uuid(),
+                    post_text="My carousel on AI Automation 🚀",
+                )
 
         # Verify final outcome
         assert result == li_post_urn
@@ -486,7 +498,7 @@ class TestLinkedInPublishPipeline:
         put_call_url = mock_http.put.call_args.args[0]
         assert put_call_url == upload_url
 
-        # Verify Authorization header was sent
+        # Verify Authorization header was sent with decrypted token
         put_call_kwargs = mock_http.put.call_args.kwargs
         assert put_call_kwargs.get("headers", {}).get("Authorization") == f"Bearer {access_token}"
 
@@ -495,3 +507,4 @@ class TestLinkedInPublishPipeline:
 
         # Cleanup
         Path(pdf_path).unlink(missing_ok=True)
+

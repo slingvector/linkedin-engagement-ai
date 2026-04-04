@@ -313,6 +313,26 @@ class TestGetByPost:
 
 
 class TestPublishToLinkedIn:
+    def _make_mock_user(self, write_token: str | None = "encrypted_write_token"):
+        """Create a mock user with optional write token."""
+        from unittest.mock import MagicMock
+        user = MagicMock()
+        user.write_access_token_encrypted = write_token
+        user.linkedin_person_id = "12345"
+        user.linkedin_id = "12345"
+        return user
+
+    def _db_returning(self, *return_values):
+        """DB that returns different scalar values on sequential execute calls."""
+        db = make_db_session()
+        results = []
+        for val in return_values:
+            r = MagicMock()
+            r.scalar_one_or_none.return_value = val
+            results.append(r)
+        db.execute.side_effect = results
+        return db
+
     @pytest.mark.asyncio
     async def test_happy_path_threestep_flow(self):
         """LinkedIn 3-step upload: initializeUpload → PUT → POST."""
@@ -321,43 +341,44 @@ class TestPublishToLinkedIn:
             pdf_path = tf.name
 
         asset = make_carousel_asset(pdf_url=f"file://{pdf_path}")
-        db = make_db_session()
-        result_mock = MagicMock()
-        result_mock.scalar_one_or_none.return_value = asset
-        db.execute.return_value = result_mock
+        user = self._make_mock_user()
 
-        service = CarouselService(AsyncMock(), db)
-        service._settings = MagicMock()
+        with patch("app.services.carousel_service.decrypt_token", return_value="test_token"):
+            db = self._db_returning(asset, user)
+            service = CarouselService(AsyncMock(), db)
+            service._settings = MagicMock()
 
-        with patch("app.services.carousel_service.httpx.AsyncClient") as mock_client:
-            mock_http = AsyncMock()
-            mock_client.return_value.__aenter__.return_value = mock_http
+            with patch("app.services.carousel_service.httpx.AsyncClient") as mock_client:
+                mock_http = AsyncMock()
+                mock_client.return_value.__aenter__.return_value = mock_http
 
-            init_resp = MagicMock()
-            init_resp.raise_for_status = MagicMock()
-            init_resp.json.return_value = {
-                "value": {
-                    "uploadUrl": "https://upload.linkedin.com/upload/1234",
-                    "document": "urn:li:document:1234",
+                init_resp = MagicMock()
+                init_resp.raise_for_status = MagicMock()
+                init_resp.status_code = 200
+                init_resp.json.return_value = {
+                    "value": {
+                        "uploadUrl": "https://upload.linkedin.com/upload/1234",
+                        "document": "urn:li:document:1234",
+                    }
                 }
-            }
 
-            put_resp = MagicMock()
-            put_resp.raise_for_status = MagicMock()
+                put_resp = MagicMock()
+                put_resp.raise_for_status = MagicMock()
+                put_resp.status_code = 201
 
-            post_resp = MagicMock()
-            post_resp.raise_for_status = MagicMock()
-            post_resp.headers = {"x-restli-id": "urn:li:share:9999"}
+                post_resp = MagicMock()
+                post_resp.raise_for_status = MagicMock()
+                post_resp.status_code = 201
+                post_resp.headers = {"x-restli-id": "urn:li:share:9999"}
 
-            mock_http.post.side_effect = [init_resp, post_resp]
-            mock_http.put.return_value = put_resp
+                mock_http.post.side_effect = [init_resp, post_resp]
+                mock_http.put.return_value = put_resp
 
-            li_urn = await service.publish_to_linkedin(
-                asset_id=asset.id,
-                user_id=make_uuid(),
-                access_token="test_token",
-                post_text="My carousel post",
-            )
+                li_urn = await service.publish_to_linkedin(
+                    asset_id=asset.id,
+                    user_id=make_uuid(),
+                    post_text="My carousel post",
+                )
 
         assert li_urn == "urn:li:share:9999"
         assert asset.status == "published"
@@ -368,11 +389,7 @@ class TestPublishToLinkedIn:
 
     @pytest.mark.asyncio
     async def test_asset_not_found_raises_value_error(self):
-        db = make_db_session()
-        result_mock = MagicMock()
-        result_mock.scalar_one_or_none.return_value = None
-        db.execute.return_value = result_mock
-
+        db = self._db_returning(None)
         service = CarouselService(AsyncMock(), db)
         service._settings = MagicMock()
 
@@ -380,18 +397,13 @@ class TestPublishToLinkedIn:
             await service.publish_to_linkedin(
                 asset_id=make_uuid(),
                 user_id=make_uuid(),
-                access_token="token",
                 post_text="test",
             )
 
     @pytest.mark.asyncio
     async def test_asset_without_pdf_url_raises_value_error(self):
         asset = make_carousel_asset(pdf_url=None)
-        db = make_db_session()
-        result_mock = MagicMock()
-        result_mock.scalar_one_or_none.return_value = asset
-        db.execute.return_value = result_mock
-
+        db = self._db_returning(asset)
         service = CarouselService(AsyncMock(), db)
         service._settings = MagicMock()
 
@@ -399,18 +411,13 @@ class TestPublishToLinkedIn:
             await service.publish_to_linkedin(
                 asset_id=asset.id,
                 user_id=make_uuid(),
-                access_token="token",
                 post_text="test",
             )
 
     @pytest.mark.asyncio
     async def test_pdf_file_missing_raises_file_not_found(self):
         asset = make_carousel_asset(pdf_url="file:///tmp/nonexistent_12345.pdf")
-        db = make_db_session()
-        result_mock = MagicMock()
-        result_mock.scalar_one_or_none.return_value = asset
-        db.execute.return_value = result_mock
-
+        db = self._db_returning(asset)
         service = CarouselService(AsyncMock(), db)
         service._settings = MagicMock()
 
@@ -418,44 +425,39 @@ class TestPublishToLinkedIn:
             await service.publish_to_linkedin(
                 asset_id=asset.id,
                 user_id=make_uuid(),
-                access_token="token",
                 post_text="test",
             )
 
     @pytest.mark.asyncio
-    async def test_linkedin_401_raises_http_error(self):
+    async def test_linkedin_401_raises_value_error(self):
+        """LinkedIn 401 on initializeUpload → ValueError (token expired)."""
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tf:
             tf.write(b"PDF")
             pdf_path = tf.name
 
         asset = make_carousel_asset(pdf_url=f"file://{pdf_path}")
-        db = make_db_session()
-        result_mock = MagicMock()
-        result_mock.scalar_one_or_none.return_value = asset
-        db.execute.return_value = result_mock
+        user = self._make_mock_user()
 
-        service = CarouselService(AsyncMock(), db)
-        service._settings = MagicMock()
+        with patch("app.services.carousel_service.decrypt_token", return_value="bad_token"):
+            db = self._db_returning(asset, user)
+            service = CarouselService(AsyncMock(), db)
+            service._settings = MagicMock()
 
-        with patch("app.services.carousel_service.httpx.AsyncClient") as mock_client:
-            mock_http = AsyncMock()
-            mock_client.return_value.__aenter__.return_value = mock_http
+            with patch("app.services.carousel_service.httpx.AsyncClient") as mock_client:
+                mock_http = AsyncMock()
+                mock_client.return_value.__aenter__.return_value = mock_http
 
-            auth_error_resp = MagicMock()
-            auth_error_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
-                "401 Unauthorized",
-                request=MagicMock(),
-                response=MagicMock(status_code=401),
-            )
-            mock_http.post.return_value = auth_error_resp
+                auth_error_resp = MagicMock()
+                auth_error_resp.status_code = 401
+                auth_error_resp.raise_for_status = MagicMock()
+                mock_http.post.return_value = auth_error_resp
 
-            with pytest.raises(httpx.HTTPStatusError):
-                await service.publish_to_linkedin(
-                    asset_id=asset.id,
-                    user_id=make_uuid(),
-                    access_token="bad_token",
-                    post_text="test",
-                )
+                with pytest.raises(ValueError, match="expired"):
+                    await service.publish_to_linkedin(
+                        asset_id=asset.id,
+                        user_id=make_uuid(),
+                        post_text="test",
+                    )
 
         Path(pdf_path).unlink(missing_ok=True)
 
@@ -467,29 +469,28 @@ class TestPublishToLinkedIn:
             pdf_path = tf.name
 
         asset = make_carousel_asset(pdf_url=f"file://{pdf_path}")
-        db = make_db_session()
-        result_mock = MagicMock()
-        result_mock.scalar_one_or_none.return_value = asset
-        db.execute.return_value = result_mock
+        user = self._make_mock_user()
 
-        service = CarouselService(AsyncMock(), db)
-        service._settings = MagicMock()
+        with patch("app.services.carousel_service.decrypt_token", return_value="token"):
+            db = self._db_returning(asset, user)
+            service = CarouselService(AsyncMock(), db)
+            service._settings = MagicMock()
 
-        with patch("app.services.carousel_service.httpx.AsyncClient") as mock_client:
-            mock_http = AsyncMock()
-            mock_client.return_value.__aenter__.return_value = mock_http
+            with patch("app.services.carousel_service.httpx.AsyncClient") as mock_client:
+                mock_http = AsyncMock()
+                mock_client.return_value.__aenter__.return_value = mock_http
 
-            bad_resp = MagicMock()
-            bad_resp.raise_for_status = MagicMock()
-            bad_resp.json.return_value = {"value": {}}  # missing uploadUrl + document
-            mock_http.post.return_value = bad_resp
+                bad_resp = MagicMock()
+                bad_resp.status_code = 200
+                bad_resp.raise_for_status = MagicMock()
+                bad_resp.json.return_value = {"value": {}}  # missing uploadUrl + document
+                mock_http.post.return_value = bad_resp
 
-            with pytest.raises(RuntimeError, match="upload initialization failed"):
-                await service.publish_to_linkedin(
-                    asset_id=asset.id,
-                    user_id=make_uuid(),
-                    access_token="token",
-                    post_text="test",
-                )
+                with pytest.raises(RuntimeError, match="upload initialization failed"):
+                    await service.publish_to_linkedin(
+                        asset_id=asset.id,
+                        user_id=make_uuid(),
+                        post_text="test",
+                    )
 
         Path(pdf_path).unlink(missing_ok=True)
