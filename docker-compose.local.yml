@@ -33,6 +33,8 @@ services:
 
   ai_engine:
     image: ghcr.io/slingvector/linkedin-engagement-ai-ai_engine:${IMAGE_TAG:-latest}
+    build:
+      context: ./apps/ai_engine
     container_name: linkedin_staging_ai_engine
     platform: linux/amd64
     env_file: .env
@@ -51,6 +53,8 @@ services:
 
   carousel_renderer:
     image: ghcr.io/slingvector/linkedin-engagement-ai-carousel_renderer:${IMAGE_TAG:-latest}
+    build:
+      context: ./apps/carousel_renderer
     container_name: linkedin_staging_carousel_renderer
     platform: linux/amd64
     ports:
@@ -59,6 +63,8 @@ services:
 
   core_api:
     image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:${IMAGE_TAG:-latest}
+    build:
+      context: ./apps/core_api
     container_name: linkedin_staging_core_api
     platform: linux/amd64
     env_file: .env
@@ -82,6 +88,8 @@ services:
 
   web:
     image: ghcr.io/slingvector/linkedin-engagement-ai-web:${IMAGE_TAG:-latest}
+    build:
+      context: ./apps/web
     container_name: linkedin_staging_web
     platform: linux/amd64
     env_file: .env
@@ -100,6 +108,8 @@ services:
   # Start with: IMAGE_TAG=v1.x.x docker compose -f docker-compose.local.yml --profile ingestion up
   ingestion_worker:
     image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:${IMAGE_TAG:-latest}
+    build:
+      context: ./apps/core_api
     container_name: linkedin_staging_ingestion_worker
     platform: linux/amd64
     profiles: ["ingestion"]

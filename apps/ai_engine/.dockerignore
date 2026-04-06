@@ -1,0 +1,22 @@
+# Environments
+.env
+.venv
+.env.example
+
+# Bytecode
+__pycache__
+*.pyc
+
+# Caches
+.pytest_cache
+.coverage
+htmlcov/
+
+# Temporary
+tmp/
+*.log
+
+# System & Repository
+.DS_Store
+.git
+.gitignore

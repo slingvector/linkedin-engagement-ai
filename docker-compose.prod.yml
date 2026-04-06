@@ -32,6 +32,8 @@ services:
 
   ai_engine:
     image: ghcr.io/slingvector/linkedin-engagement-ai-ai_engine:${IMAGE_TAG}
+    build:
+      context: ./apps/ai_engine
     container_name: linkedin_prod_ai_engine
     platform: linux/amd64
     restart: unless-stopped
@@ -50,6 +52,8 @@ services:
 
   carousel_renderer:
     image: ghcr.io/slingvector/linkedin-engagement-ai-carousel_renderer:${IMAGE_TAG}
+    build:
+      context: ./apps/carousel_renderer
     container_name: linkedin_prod_carousel_renderer
     platform: linux/amd64
     restart: unless-stopped
@@ -58,6 +62,8 @@ services:
 
   core_api:
     image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:${IMAGE_TAG}
+    build:
+      context: ./apps/core_api
     container_name: linkedin_prod_core_api
     platform: linux/amd64
     restart: unless-stopped
@@ -81,6 +87,8 @@ services:
 
   web:
     image: ghcr.io/slingvector/linkedin-engagement-ai-web:${IMAGE_TAG}
+    build:
+      context: ./apps/web
     container_name: linkedin_prod_web
     platform: linux/amd64
     restart: unless-stopped
@@ -100,6 +108,8 @@ services:
   # Start with: IMAGE_TAG=v1.x.x docker compose -f docker-compose.prod.yml --profile ingestion up -d
   ingestion_worker:
     image: ghcr.io/slingvector/linkedin-engagement-ai-core_api:${IMAGE_TAG}
+    build:
+      context: ./apps/core_api
     container_name: linkedin_prod_ingestion_worker
     platform: linux/amd64
     profiles: ["ingestion"]
