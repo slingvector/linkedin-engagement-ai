@@ -55,7 +55,7 @@ class IngestedPost(Base, UUIDMixin, TimestampMixin):
     linkedin_post_id = Column(String, nullable=False, unique=True, index=True)
     post_url = Column(String, nullable=False)
     content = Column(Text, nullable=False)
-    posted_at = Column(DateTime, nullable=False, index=True)
+    posted_at = Column(DateTime(timezone=True), nullable=False, index=True)
 
     # Scraped engagement
     likes = Column(Integer, default=0)

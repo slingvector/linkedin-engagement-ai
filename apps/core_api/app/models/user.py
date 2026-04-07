@@ -26,12 +26,18 @@ class User(Base, UUIDMixin, TimestampMixin):
     profile_picture_url = Column(Text, nullable=True)
 
     # OAuth tokens — encrypted at rest using Fernet
-    access_token_encrypted = Column(Text, nullable=True)
+    access_token_encrypted = Column(Text, nullable=True)          # Read-flow token
     refresh_token_encrypted = Column(Text, nullable=True)
     token_expires_at = Column(DateTime(timezone=True), nullable=True)
+    write_access_token_encrypted = Column(Text, nullable=True,    # Write-flow token (carousel publish)
+                                          comment="LinkedIn write-flow OAuth access token")
 
     # Scraper cookies 
     li_at_cookie_encrypted = Column(Text, nullable=True, comment="Browser session cookie for Playwright scraper")
+
+    # LinkedIn Person URN ID (returned by userinfo as 'sub', used in Document Upload API)
+    linkedin_person_id = Column(String(100), nullable=True, index=True,
+                                comment="LinkedIn numeric person ID for urn:li:person: URN")
 
     # Feature gating
     subscription_tier = Column(String(50), default="free", nullable=False)

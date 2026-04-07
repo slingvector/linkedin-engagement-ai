@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from sqlalchemy import String, DateTime, Text, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
@@ -18,8 +18,8 @@ class Requisition(Base):
     department: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(Text)
     
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class Candidate(Base):
     """
@@ -40,5 +40,5 @@ class Candidate(Base):
     ats_status: Mapped[str] = mapped_column(String, default="sourced") # sourced, outreached, interviewing, hired, rejected
     match_score: Mapped[int] = mapped_column(Integer, default=0) # 0-100 calculated by AI Copilot
     
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

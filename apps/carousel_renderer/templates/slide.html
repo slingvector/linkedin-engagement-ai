@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ slide.headline }}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family={{ brand_kit.font_family | replace(" ", "+") }}:wght@400;600;700&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: '{{ brand_kit.font_family }}', Inter, sans-serif;
+      background: #ffffff;
+    }
+
+    .slide {
+      width: 1080px;
+      height: 1080px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 80px;
+      page-break-after: always;
+    }
+
+    /* ── Cover Slide ── */
+    .slide.cover {
+      background: linear-gradient(135deg, {{ brand_kit.primary_color }}, {{ brand_kit.primary_color }}cc);
+      color: #ffffff;
+      text-align: center;
+    }
+
+    .slide.cover .hook {
+      font-size: 56px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 40px;
+    }
+
+    .slide.cover .author-block {
+      position: absolute;
+      bottom: 60px;
+      left: 80px;
+      right: 80px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .slide.cover .author-name {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .slide.cover .author-tagline {
+      font-size: 18px;
+      opacity: 0.8;
+    }
+
+    /* ── Content Slide ── */
+    .slide.content {
+      background: #ffffff;
+      justify-content: flex-start;
+      padding-top: 100px;
+    }
+
+    .slide-number {
+      position: absolute;
+      top: 40px;
+      right: 60px;
+      width: 52px;
+      height: 52px;
+      background: {{ brand_kit.primary_color }};
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .accent-bar {
+      width: 80px;
+      height: 6px;
+      background: {{ brand_kit.primary_color }};
+      border-radius: 3px;
+      margin-bottom: 32px;
+    }
+
+    .slide.content .headline {
+      font-size: 52px;
+      font-weight: 700;
+      color: #1a1a1a;
+      line-height: 1.2;
+      margin-bottom: 32px;
+    }
+
+    .slide.content .body {
+      font-size: 30px;
+      color: #444;
+      line-height: 1.6;
+      white-space: pre-line;
+    }
+
+    .visual-hint {
+      position: absolute;
+      bottom: 60px;
+      right: 80px;
+      font-size: 14px;
+      color: #bbb;
+      font-style: italic;
+      max-width: 300px;
+      text-align: right;
+    }
+
+    /* ── CTA Slide ── */
+    .slide.cta {
+      background: {{ brand_kit.primary_color }};
+      color: #ffffff;
+      text-align: center;
+    }
+
+    .slide.cta .cta-text {
+      font-size: 56px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 40px;
+    }
+
+    .slide.cta .follow-text {
+      font-size: 28px;
+      opacity: 0.9;
+    }
+
+    /* Logo */
+    .logo {
+      max-width: 120px;
+      max-height: 60px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+{% if is_cover %}
+<!-- ── Cover Slide ── -->
+<div class="slide cover">
+  {% if brand_kit.logo_url %}
+    <img class="logo" src="{{ brand_kit.logo_url }}" alt="Logo">
+  {% endif %}
+  <div class="hook">{{ cover_hook or slide.headline }}</div>
+  <div class="author-block">
+    <div>
+      <div class="author-name">{{ brand_kit.author_name }}</div>
+      <div class="author-tagline">{{ brand_kit.author_tagline }}</div>
+    </div>
+  </div>
+</div>
+
+{% elif is_cta %}
+<!-- ── CTA Slide ── -->
+<div class="slide cta">
+  <div class="cta-text">{{ cta_text or slide.body }}</div>
+  {% if brand_kit.author_name %}
+    <div class="follow-text">— {{ brand_kit.author_name }}</div>
+  {% endif %}
+</div>
+
+{% else %}
+<!-- ── Content Slide ── -->
+<div class="slide content">
+  <div class="slide-number">{{ slide.slide_number }}</div>
+  <div class="accent-bar"></div>
+  <div class="headline">{{ slide.headline }}</div>
+  <div class="body">{{ slide.body }}</div>
+  {% if slide.visual_suggestion %}
+    <div class="visual-hint">📷 {{ slide.visual_suggestion }}</div>
+  {% endif %}
+</div>
+{% endif %}
+
+</body>
+</html>

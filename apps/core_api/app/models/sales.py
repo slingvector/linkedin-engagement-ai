@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, DateTime, Integer, Float, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -25,7 +25,7 @@ class Prospect(Base):
     
     # Metadata
     avatar_url = Column(String(1000), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="prospects")
     conversations = relationship("Conversation", back_populates="prospect", cascade="all, delete-orphan")
@@ -42,9 +42,9 @@ class Conversation(Base):
     
     # Message Context
     initial_message_draft = Column(Text, nullable=True)
-    last_interaction_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    last_interaction_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="conversations")
     prospect = relationship("Prospect", back_populates="conversations")

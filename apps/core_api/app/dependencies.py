@@ -46,23 +46,16 @@ def get_user_repository(db: AsyncSession = Depends(get_db)) -> UserRepository:
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
     user_repo: UserRepository = Depends(get_user_repository),
-    db: AsyncSession = Depends(get_db)
 ) -> User:
     """
     Extract and validate the current user from the JWT bearer token.
-    Raises 401 if token is missing/invalid, or if user doesn't exist.
+    Raises 401 if the token is missing, invalid, or the user no longer exists.
     """
     if credentials is None:
-        from sqlalchemy import select
-        from app.models.user import User
-        result = await db.execute(select(User).limit(1))
-        user = result.scalar_one_or_none()
-        if user:
-            return user
-
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     payload = decode_jwt_token(credentials.credentials)
@@ -70,6 +63,7 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     user_id = payload.get("sub")
@@ -77,6 +71,7 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     user = await user_repo.get_by_id(UUID(user_id))
@@ -84,6 +79,29 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     return user
+
+
+async def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    user_repo: UserRepository = Depends(get_user_repository),
+) -> User | None:
+    """
+    Like get_current_user but returns None instead of raising 401.
+    Use for endpoints that work both authenticated and unauthenticated.
+    """
+    if credentials is None:
+        return None
+
+    payload = decode_jwt_token(credentials.credentials)
+    if payload is None:
+        return None
+
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+
+    return await user_repo.get_by_id(UUID(user_id))

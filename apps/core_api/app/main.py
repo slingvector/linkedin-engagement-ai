@@ -12,16 +12,24 @@ import structlog
 
 from app.config import get_settings, get_yaml_config
 from app.middleware.error_handler import register_error_handlers
+from app.middleware.rate_limit import RateLimitMiddleware
+from app.models import oauth_state as _oauth_state_model  # noqa: F401 — ensure table is registered
 from app.controllers import auth_controller, health_controller, post_controller, creator_controller, idea_controller, analytics_controller, career_controller, sales_controller, talent_controller, enterprise_controller, llmops_controller, comment_controller
+from app.controllers import v2_analytics_controller
+from app.controllers import v2_calendar_controller
+from app.controllers import v2_posts_controller
+from app.controllers import v2_carousel_controller
+from app.controllers.v2.auth_controller import router as v2_auth_router
 from app.utils.logger import setup_logging
-from app.workers.ingestion_worker import live_viral_ingestion_loop
 from app.workers.publishing_worker import publishing_scheduler_loop
+from app.workers.bulk_ingestion_worker import run_bulk_ingestion
 from app.workers.metrics_worker import poll_metrics_and_classifications
 from app.workers.job_seeder import sync_remote_job_board
 from app.workers.lead_seeder import seed_leads_loop
 from app.workers.candidate_seeder import seed_candidates_loop
 from app.workers.signal_seeder import seed_enterprise_signals_loop
 from app.workers.evals_worker import seed_evals_loop
+from app.workers.engagement_sync_worker import engagement_sync_loop
 import asyncio
 
 logger = structlog.get_logger()
@@ -39,7 +47,7 @@ async def lifespan(app: FastAPI):
     )
     
     # Start background workers
-    ingestion_task = asyncio.create_task(live_viral_ingestion_loop())
+    ingestion_task = asyncio.create_task(asyncio.to_thread(run_bulk_ingestion))
     publishing_task = asyncio.create_task(publishing_scheduler_loop())
     metrics_task = asyncio.create_task(poll_metrics_and_classifications())
     # job_seeder_task = asyncio.create_task(sync_remote_job_board())
@@ -47,6 +55,7 @@ async def lifespan(app: FastAPI):
     # candidate_seeder_task = asyncio.create_task(seed_candidates_loop())
     # signal_seeder_task = asyncio.create_task(seed_enterprise_signals_loop())
     evals_task = asyncio.create_task(seed_evals_loop())
+    engagement_sync_task = asyncio.create_task(engagement_sync_loop())
 
     yield
     
@@ -59,6 +68,7 @@ async def lifespan(app: FastAPI):
     # candidate_seeder_task.cancel()
     # signal_seeder_task.cancel()
     evals_task.cancel()
+    engagement_sync_task.cancel()
     logger.info("app_shutting_down", service="core_api")
 
 
@@ -82,16 +92,19 @@ def create_app() -> FastAPI:
     # --- CORS ---
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],  # Next.js dev server
+        allow_origins=settings.cors_allowed_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-    # --- Error Handlers ---
+    # Register error handlers
     register_error_handlers(app)
-
-    # --- Routes ---
+ 
+    # Add Rate Limiting Middleware
+    app.add_middleware(RateLimitMiddleware)
+ 
+    # Include controllers ---
     api_prefix = app_config.get("api_prefix", "/api/v1")
     app.include_router(health_controller.router)
     app.include_router(auth_controller.router, prefix=api_prefix)
@@ -100,6 +113,11 @@ def create_app() -> FastAPI:
     app.include_router(creator_controller.copilot_router, prefix=api_prefix)
     app.include_router(idea_controller.router, prefix=api_prefix)
     app.include_router(analytics_controller.router)
+    app.include_router(v2_analytics_controller.router)  # V2 — /api/v2/analytics/heatmap
+    app.include_router(v2_calendar_controller.router)    # V2 — /api/v2/calendar/smart-fill
+    app.include_router(v2_posts_controller.router)       # V2 — /api/v2/posts/{id}/score
+    app.include_router(v2_carousel_controller.router)    # V2 — /api/v2/posts/{id}/carousel
+    app.include_router(v2_auth_router, prefix="/api/v2") # V2 — /api/v2/auth/linkedin
     app.include_router(career_controller.router)
     app.include_router(sales_controller.router, prefix=api_prefix)
     app.include_router(talent_controller.router, prefix=api_prefix)

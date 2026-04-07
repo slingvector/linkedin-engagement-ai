@@ -82,7 +82,7 @@ class CreatorService:
     async def ingest_post_direct(self, user_id: UUID, post_url: str) -> dict:
         """Manual trigger to ingest a post URL directly and extract basic info."""
         import re
-        from datetime import datetime
+        from datetime import datetime, timezone
         from app.models.creator import TrackedCreator, IngestedPost
 
         # Ex: https://www.linkedin.com/posts/gaganbiyani_a-junior-employee-really-screwed-...
@@ -97,7 +97,14 @@ class CreatorService:
 
         try:
             async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-                res = await client.get(post_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Cache-Control": "max-age=0",
+                    "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                }
+                res = await client.get(post_url, headers=headers)
                 if res.status_code == 200:
                     html = res.text
                     title_match = re.search(r'<title>(.*?)</title>', html)
@@ -107,8 +114,16 @@ class CreatorService:
                             parts = raw_title.split(" on LinkedIn:")
                             creator_name = parts[0].strip()
                             content_text = parts[1].strip()
+                        else:
+                            # Use title as content if we can't split
+                            content_text = raw_title.strip()
+                else:
+                    logger.warning("direct_ingest_bad_status", url=post_url, status=res.status_code)
+                    # Better fallback: Use what we know about the creator
+                    content_text = f"Context: This is a recent LinkedIn post from {creator_slug}. The scrape was blocked, so focus on high-level professional insights relevant to this creator's profile."
         except Exception as e:
             logger.warning("direct_ingest_scrape_failed", url=post_url, error=str(e))
+            content_text = f"Context: LinkedIn post from {creator_slug}. (Scrape Failed). Generate generic professional engagement based on this creator's likely niche."
 
         # 2. Track Creator if not exists
         linkedin_id = f"direct-{creator_slug}"
@@ -128,7 +143,7 @@ class CreatorService:
             linkedin_post_id=f"urn:li:activity:direct_{int(time.time())}",
             post_url=post_url,
             content=content_text,
-            posted_at=datetime.utcnow(),
+            posted_at=datetime.now(timezone.utc),
             likes=100,
             comments=10,
             ingestion_source="direct"

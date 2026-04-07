@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
         source: "/api/v1/:path*",
         destination: `${process.env.CORE_API_INTERNAL_URL || "http://core_api:8000"}/api/v1/:path*`,
       },
+      {
+        source: "/api/v2/:path*",
+        destination: `${process.env.CORE_API_INTERNAL_URL || "http://core_api:8000"}/api/v2/:path*`,
+      },
     ];
   },
 };
