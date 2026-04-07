@@ -41,7 +41,7 @@ services:
     environment:
       - AI_ENGINE_API_KEY=${AI_ENGINE_API_KEY:-change_this_internal_microservice_key}
       - LLM_PROVIDER=vertexai
-      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-mcr-relay-1772228380}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
       - GCP_LOCATION=${GCP_LOCATION:-us-central1}
       - VERTEX_MODEL=${VERTEX_MODEL:-gemini-2.0-flash-001}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/modernos-edge-agent-key.json
@@ -72,7 +72,7 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme_local_only}@postgres:5432/${POSTGRES_DB:-linkedin_saas}
       - AI_ENGINE_URL=http://ai_engine:8001
       - CAROUSEL_RENDERER_URL=http://carousel_renderer:8002
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=https://scheduling-hip-minus-zealand.trycloudflare.com
     ports:
       - "8000:8000"
     depends_on:
@@ -120,6 +120,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    logging: *default-logging
+
+  # ── Cloudflare Tunnel ─────────────────────────────────────────────────────
+  # Exposes the frontend to the internet for remote testing/verification.
+  # View logs to find the temporary .trycloudflare.com URL.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: linkedin_staging_tunnel
+    command: tunnel --url http://web:3000
+    depends_on:
+      - web
     logging: *default-logging
 
 volumes:

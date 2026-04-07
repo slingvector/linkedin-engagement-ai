@@ -18,4 +18,4 @@ COPY . .
 EXPOSE 8001
 
 # Run Uvicorn in production mode (no --reload)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8001}

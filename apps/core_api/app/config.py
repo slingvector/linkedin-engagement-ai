@@ -6,7 +6,7 @@ All business-logic parameters are externalized — zero hardcoding.
 
 from functools import lru_cache
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 import yaml
 from pydantic import Field, field_validator, model_validator
@@ -90,9 +90,10 @@ class Settings(BaseSettings):
     gcs_bucket_name: str = Field(default="")
 
     # --- CORS ---
-    # Comma-separated list of allowed origins.
+    # Comma-separated list or JSON list of allowed origins.
     # Example: CORS_ALLOWED_ORIGINS=http://localhost:3000,https://myapp.example.com
-    cors_allowed_origins: List[str] = Field(default=["http://localhost:3000"])
+    # Or: CORS_ALLOWED_ORIGINS='["http://localhost:3000"]'
+    cors_allowed_origins: Union[str, List[str]] = Field(default=["http://localhost:3000"])
 
     # --- Observability ---
     log_level: str = Field(default="INFO")

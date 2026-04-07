@@ -1,14 +1,36 @@
-# Variables
-GCP_REGISTRY ?= us-central1-docker.pkg.dev/mcr-relay-1772228380/linkedin-saas
+# Load .env automatically if present
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
+
+# Variables (These act as fallbacks if missing from .env)
+GCP_PROJECT_ID ?= universal-trail-492511-i7
+GCP_REGION ?= us-central1
+GCP_REPO_NAME ?= linkedin-saas
+
+# Dynamic Registry Resolution
+GCP_REGISTRY = $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT_ID)/$(GCP_REPO_NAME)
 IMAGE_TAG ?= 2.0.0
+
+# Internal Helpers
+check-docker:
+	@docker info > /dev/null 2>&1 || (echo "Error: Docker is not running. Please start Docker Desktop." && exit 1)
 
 # Local Development Commands
 .PHONY: dev build-local
 dev:
 	docker compose up --build
 
-build-local:
+build-local: check-docker
 	docker compose -f docker-compose.local.yml build
+
+staging: check-docker
+	@echo "Starting LinkedIn SaaS Staging Environment (GHCR-based)..."
+	docker compose -f docker-compose.local.yml pull
+	docker compose -f docker-compose.local.yml up -d
+	@echo "🚀 Staging services are booting up!"
+	@echo "🔗 Run 'docker compose -f docker-compose.local.yml logs tunnel' to find your public URL."
 
 # Safe Platform-Independent Cloud Deployment Commands
 .PHONY: deploy-gcp-core-api deploy-gcp-ai-engine deploy-gcp-carousel deploy-gcp-web deploy-all
