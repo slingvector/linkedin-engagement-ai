@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LinkedIn Engagement AI - Frontend
 
-## Getting Started
+The Next.js 14 web interface for the LinkedIn Engagement AI platform. This is the user-facing control center for automated LinkedIn content generation and engagement.
 
-First, run the development server:
+## 🎨 Features
+
+- **Post Generator Canvas** - Create AI-powered LinkedIn posts with Contrarian/Story frameworks
+- **Idea Brainstorm Dashboard** - Generate 50+ post ideas from a single prompt using Gemini AI
+- **Scheduled Post Timeline** - Visualize and manage your posting schedule
+- **Comment Generation Radar** - Auto-generate contextual comments for engagement tracking
+- **Real-time Sync** - Live WebSocket connection to backend for instant updates
+- **OAuth Authentication** - LinkedIn OAuth integration via NextAuth.js
+
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **UI Library**: React 18 + Radix UI
+- **Styling**: TailwindCSS
+- **State Management**: React Query (TanStack Query)
+- **Authentication**: NextAuth.js + LinkedIn OAuth
+- **Validation**: Pydantic models from backend API
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+- Backend API running on `http://localhost:8000`
+
+### Installation
 
 ```bash
+cd apps/web
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── components/        # Reusable React components
+│   ├── PostCanvas.tsx
+│   ├── IdeaGenerator.tsx
+│   ├── CommentRadar.tsx
+│   └── ScheduleTimeline.tsx
+├── pages/            # App Router pages
+│   ├── dashboard/
+│   ├── generate/
+│   └── schedule/
+├── hooks/            # Custom React hooks
+├── utils/            # Helper functions
+└── styles/           # Global styles
+```
 
-## Learn More
+## 🔐 Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+Create a `.env.local` file:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key
+LINKEDIN_CLIENT_ID=your-client-id
+LINKEDIN_CLIENT_SECRET=your-client-secret
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🚢 Building for Production
 
-## Deploy on Vercel
+```bash
+npm run build
+npm run start
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📚 API Integration
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This frontend connects to the Core API at `http://localhost:8000`. Key endpoints:
+
+- `POST /api/generate-post` - Generate LinkedIn post
+- `POST /api/generate-ideas` - Generate post ideas
+- `POST /api/schedule-post` - Schedule a post
+- `GET /api/posts` - Fetch user's posts
+
+See the main [LinkedIn Engagement AI README](../../README.md) for full architecture details.
+
+## 🎯 Key Features Explained
+
+### Post Generator Canvas
+Smart editor with AI suggestions based on LinkedIn engagement patterns.
+
+### Idea Brainstorm
+Leverage Gemini 2.5 to generate 50+ contextual post ideas in seconds.
+
+### Comment Generation
+Auto-generate contextual comments to boost post engagement.
+
+## 🤝 Contributing
+
+See main project [CONTRIBUTING.md](../../CONTRIBUTING.md)
+
+## 📄 License
+
+Proprietary - Part of LinkedIn Engagement AI platform
