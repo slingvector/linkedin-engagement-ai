@@ -354,7 +354,7 @@ Proprietary - Internal use only. All rights reserved.
 
 **Slingvector**
 - GitHub: [@slingvector](https://github.com/slingvector)
-- LinkedIn: [Slingvector](https://linkedin.com/in/slingvector)
+- LinkedIn: [Slingvector](https://www.linkedin.com/in/anuj-k-09b887148)
 
 ---
 
